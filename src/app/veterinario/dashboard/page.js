@@ -48,24 +48,19 @@ export default function VeterinarioDashboard() {
   const remoteVideoRef = useRef(null);
 
   // Configuración ICE mejorada
-  const RTC_CONFIG = {
-    iceServers: [
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun1.l.google.com:19302" },
-      { urls: "stun:stun2.l.google.com:19302" },
-      { urls: "stun:stun.relay.metered.ca:80" },
-      {
-        urls: ["turn:openrelay.metered.ca:80", "turn:openrelay.metered.ca:443"],
-        username: "openrelayproject",
-        credential: "openrelayproject",
-      },
-      {
-        urls: "turn:turn.relay.metered.ca:443",
-        username: "openrelayproject",
-        credential: "openrelayproject",
-      },
-    ],
-  };
+const RTC_CONFIG = {
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    {
+      urls: [
+        "turn:54.90.130.188:3478",
+        "turn:54.90.130.188:3478?transport=tcp",
+      ],
+      username: "webrtcuser",
+      credential: "webrtcpass",
+    },
+  ],
+};
 
   // Cargar usuario al montar
   useEffect(() => {

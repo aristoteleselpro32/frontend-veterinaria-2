@@ -28,20 +28,14 @@ const EMERGENCY_USER_ID = "750b4f1d-3912-4802-8df2-e6544ba860fd";
 // Configuración ICE para WebRTC
 const RTC_CONFIG = {
   iceServers: [
-    // STUNs de Google
     { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:19302" },
-
-    // TURN público openrelay (con credenciales dummy para que Chrome/Firefox no se queje)
     {
       urls: [
-        "turn:openrelay.metered.ca:80",
-        "turn:openrelay.metered.ca:443",
-        "turn:openrelay.metered.ca:443?transport=tcp",
+        "turn:54.90.130.188:3478",
+        "turn:54.90.130.188:3478?transport=tcp",
       ],
-      username: "openrelayuser",
-      credential: "openrelaypass",
+      username: "webrtcuser",
+      credential: "webrtcpass",
     },
   ],
 };
