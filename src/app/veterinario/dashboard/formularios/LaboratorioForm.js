@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Form, Button, Row, Col, Modal, Alert } from "react-bootstrap";
 import { parse, isValid, differenceInMinutes, format } from "date-fns";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function LaboratorioForm({ mascota, propietario, data = {}, editar = false, onSave, onComplete, onClose }) {
   const [formData, setFormData] = useState({
@@ -13,6 +14,8 @@ export default function LaboratorioForm({ mascota, propietario, data = {}, edita
     prueba: data.prueba || "",
     cantidad: data.cantidad || "",
     diagnostico_presuntivo: data.diagnostico_presuntivo || "",
+    precio: data.precio || 50,
+    estado: data.estado || "pendiente",
     proximo_control_fecha: data.proximo_control ? format(new Date(data.proximo_control), "yyyy-MM-dd") : "",
     proximo_control_hora: data.proximo_control ? format(new Date(data.proximo_control), "HH:mm") : "",
   });
@@ -61,22 +64,25 @@ export default function LaboratorioForm({ mascota, propietario, data = {}, edita
     cargarServicios();
   }, []);
 
-  const validateNumber = (value) => {
+  const validateNumber = (value, fieldName) => {
     if (value === "") return true; // Allow empty fields (optional)
     const regex = /^\d*\.?\d*$/;
-    return regex.test(value) && !isNaN(parseFloat(value)) ? true : "Debe ser un número válido.";
+    const isValidNumber = regex.test(value) && !isNaN(parseFloat(value));
+    if (!isValidNumber) return "Debe ser un número válido.";
+    if (fieldName === "precio" && parseFloat(value) < 0) return "El precio no puede ser negativo.";
+    return true;
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     let newErrors = { ...errors };
 
-    if (name === "cantidad") {
-      const validationResult = validateNumber(value);
+    if (name === "cantidad" || name === "precio") {
+      const validationResult = validateNumber(value, name);
       if (validationResult !== true) {
-        newErrors.cantidad = validationResult;
+        newErrors[name] = validationResult;
       } else {
-        delete newErrors.cantidad;
+        delete newErrors[name];
       }
     } else {
       delete newErrors[name];
@@ -191,6 +197,29 @@ export default function LaboratorioForm({ mascota, propietario, data = {}, edita
     }
   };
 
+  const marcarComoPagado = async () => {
+    if (!data._id) {
+      setErrors({ general: "ID del laboratorio no definido." });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`https://mascota-service.onrender.com/api/mascotas/labo/${data._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado: "pagado" }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || "Error al actualizar el estado de pago");
+      setFormData((prev) => ({ ...prev, estado: "pagado" }));
+      setErrors({ success: "✅ Análisis de laboratorio marcado como pagado con éxito." });
+    } catch (err) {
+      setErrors({ general: `❌ Error al marcar como pagado: ${err.message}` });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("handleSubmit ejecutado - Inicio guardado de laboratorio");
@@ -204,9 +233,13 @@ export default function LaboratorioForm({ mascota, propietario, data = {}, edita
     if (!formData.prueba) {
       newErrors.prueba = "Prueba es obligatoria.";
     }
-    const cantidadValidation = validateNumber(formData.cantidad);
+    const cantidadValidation = validateNumber(formData.cantidad, "cantidad");
     if (cantidadValidation !== true) {
       newErrors.cantidad = `Cantidad: ${cantidadValidation}`;
+    }
+    const precioValidation = validateNumber(formData.precio, "precio");
+    if (precioValidation !== true) {
+      newErrors.precio = `Precio: ${precioValidation}`;
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -225,6 +258,7 @@ export default function LaboratorioForm({ mascota, propietario, data = {}, edita
       ...formData,
       veterinario_id: veterinario.id,
       cantidad: formData.cantidad ? parseFloat(formData.cantidad) : undefined,
+      precio: formData.precio ? parseFloat(formData.precio) : undefined,
       proximo_control: formData.proximo_control_fecha && formData.proximo_control_hora
         ? parse(`${formData.proximo_control_fecha} ${formData.proximo_control_hora}`, "yyyy-MM-dd HH:mm", new Date())
         : undefined,
@@ -297,11 +331,12 @@ export default function LaboratorioForm({ mascota, propietario, data = {}, edita
   };
 
   const buttonStyle = {
-    borderRadius: "6px",
-    padding: "0.5rem 1rem",
-    fontSize: "0.9rem",
+    borderRadius: "8px",
+    padding: "0.6rem 1.2rem",
+    fontSize: "1rem",
     textTransform: "capitalize",
     transition: "all 0.3s ease",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
   };
 
   const buttonHover = {
@@ -311,6 +346,36 @@ export default function LaboratorioForm({ mascota, propietario, data = {}, edita
 
   return (
     <>
+      <style jsx>{`
+        .form-control, .form-select {
+          background-color: #f8f9fa !important;
+          color: #212529 !important;
+          border-color: #ced4da !important;
+        }
+        .form-label {
+          color: #212529 !important;
+          font-weight: 600 !important;
+        }
+        .modal-content {
+          background-color: #ffffff !important;
+          color: #212529 !important;
+        }
+        .btn-close {
+          color: #ffffffff !important;
+          background-color: #ffffff !important;
+          border: 1px solid #ced4da !important;
+          border-radius: 50%;
+          width: 30px;
+          height: 30px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.2rem;
+        }
+        .close-btn:hover {
+          background-color: #e9ecef !important;
+        }
+      `}</style>
       <link
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
@@ -338,53 +403,93 @@ export default function LaboratorioForm({ mascota, propietario, data = {}, edita
         <Row>
           <Col md={6}>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold"><i className="bi bi-calendar-event me-2"></i>Fecha</Form.Label>
+              <Form.Label><i className="bi bi-calendar-event me-2"></i>Fecha</Form.Label>
               <Form.Control
                 type="date"
                 name="fecha"
                 value={formData.fecha}
                 onChange={handleChange}
                 required
-                className="bg-dark text-light border-secondary"
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold"><i className="bi bi-clipboard-check me-2"></i>Prueba</Form.Label>
+              <Form.Label><i className="bi bi-clipboard-check me-2"></i>Prueba</Form.Label>
               <Form.Control
+                list="prueba-suggestions"
                 name="prueba"
                 placeholder="Nombre de la prueba"
                 value={formData.prueba}
                 onChange={handleChange}
                 required
-                className="bg-dark text-light border-secondary"
               />
+              <datalist id="prueba-suggestions">
+                <option value="Hemograma" />
+                <option value="Bioquímica Sanguínea" />
+                <option value="Análisis de Orina" />
+                <option value="Coprológico" />
+                <option value="Citología" />
+              </datalist>
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold"><i className="bi bi-hash me-2"></i>Cantidad</Form.Label>
+              <Form.Label><i className="bi bi-hash me-2"></i>Cantidad</Form.Label>
               <Form.Control
                 type="number"
                 step="0.1"
                 name="cantidad"
                 value={formData.cantidad}
                 onChange={handleChange}
-                className="bg-dark text-light border-secondary"
                 placeholder="Ej. 1.0"
               />
+              <datalist id="cantidad-suggestions">
+                <option value="1.0" />
+                <option value="2.0" />
+                <option value="0.5" />
+              </datalist>
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold"><i className="bi bi-person me-2"></i>Encargado</Form.Label>
+              <Form.Label><i className="bi bi-person me-2"></i>Encargado</Form.Label>
               <Form.Control
                 name="encargado"
                 placeholder="Encargado de las pruebas"
                 value={formData.encargado}
                 onChange={handleChange}
-                className="bg-dark text-light border-secondary"
               />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label><i className="bi bi-currency-dollar me-2"></i>Precio</Form.Label>
+              <Form.Control
+                type="number"
+                name="precio"
+                value={formData.precio}
+                onChange={handleChange}
+                min="0"
+                step="0.01"
+                placeholder="Ej. 50.00"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label><i className="bi bi-wallet me-2"></i>Estado de Pago</Form.Label>
+              <Form.Control
+                value={formData.estado === "pendiente" ? "Por Pagar" : "Pagado"}
+                readOnly
+              />
+              {editar && formData.estado === "pendiente" && (
+                <Button
+                  variant="success"
+                  className="mt-2"
+                  onClick={marcarComoPagado}
+                  disabled={isSubmitting}
+                  style={buttonStyle}
+                  {...buttonHover}
+                >
+                  <i className="bi bi-check-circle-fill me-2"></i>Marcar como Pagado
+                </Button>
+              )}
             </Form.Group>
           </Col>
           <Col md={6}>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold"><i className="bi bi-file-medical me-2"></i>Diagnóstico Presuntivo</Form.Label>
+              <Form.Label><i className="bi bi-file-medical me-2"></i>Diagnóstico Presuntivo</Form.Label>
               <Form.Control
                 as="textarea"
                 rows={4}
@@ -392,32 +497,29 @@ export default function LaboratorioForm({ mascota, propietario, data = {}, edita
                 value={formData.diagnostico_presuntivo}
                 onChange={handleChange}
                 placeholder="Hipótesis inicial sobre la enfermedad del animal"
-                className="bg-dark text-light border-secondary"
               />
             </Form.Group>
-            <h6 className="fw-bold"><i className="bi bi-calendar-fill me-2"></i>Próximo Control</h6>
+            <h6><i className="bi bi-calendar-fill me-2"></i>Próximo Control</h6>
             <Row className="mb-3">
               <Col md={6}>
                 <Form.Group>
-                  <Form.Label className="fw-bold">Fecha</Form.Label>
+                  <Form.Label>Fecha</Form.Label>
                   <Form.Control
                     type="date"
                     name="proximo_control_fecha"
                     value={formData.proximo_control_fecha}
                     onChange={handleChange}
-                    className="bg-dark text-light border-secondary"
                   />
                 </Form.Group>
               </Col>
               <Col md={6}>
                 <Form.Group>
-                  <Form.Label className="fw-bold">Hora</Form.Label>
+                  <Form.Label>Hora</Form.Label>
                   <Form.Control
                     type="time"
                     name="proximo_control_hora"
                     value={formData.proximo_control_hora}
                     onChange={handleChange}
-                    className="bg-dark text-light border-secondary"
                   />
                 </Form.Group>
               </Col>
@@ -425,9 +527,9 @@ export default function LaboratorioForm({ mascota, propietario, data = {}, edita
           </Col>
         </Row>
 
-        <div className="d-flex justify-content-end mt-3">
+        <div className="d-flex justify-content-end mt-4">
           <Button
-            variant="secondary"
+            variant="outline-secondary"
             onClick={handleCerrar}
             className="me-2"
             disabled={isSubmitting}
@@ -465,18 +567,35 @@ export default function LaboratorioForm({ mascota, propietario, data = {}, edita
         backdrop="static"
         keyboard={false}
         centered
-        className="fade"
       >
-        <Modal.Header closeButton className="bg-dark text-white border-secondary">
+        <Modal.Header className="border-0">
           <Modal.Title><i className="bi bi-calendar-check-fill me-2"></i>Confirmar cita</Modal.Title>
+          <Button
+            variant="primary"
+            className="close-btn text-white"
+            onClick={() => {
+              console.log("Botón cerrar modal clicado");
+              setMostrarModalConfirmacion(false);
+              setIntentoCerrar(false);
+              if (laboratorioGuardado || intentoCerrar) {
+                if (editar) {
+                  onClose();
+                } else {
+                  onComplete();
+                }
+              }
+            }}
+          >
+            <i className="bi bi-x"></i>
+          </Button>
         </Modal.Header>
-        <Modal.Body className="bg-dark text-white">
+        <Modal.Body>
           ¿Deseas agendar una cita para el próximo control en {formData.proximo_control_fecha} a las{" "}
           {formData.proximo_control_hora}?
         </Modal.Body>
-        <Modal.Footer className="bg-dark border-secondary">
+        <Modal.Footer className="border-0">
           <Button
-            variant="secondary"
+            variant="outline-secondary"
             onClick={() => {
               console.log("Botón 'No' clicado");
               setMostrarModalConfirmacion(false);

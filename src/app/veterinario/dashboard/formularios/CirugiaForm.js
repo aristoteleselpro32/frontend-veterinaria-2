@@ -1,7 +1,9 @@
+
 "use client";
 import { useState, useEffect } from "react";
 import { Form, Button, Row, Col, Modal, Alert } from "react-bootstrap";
 import { parse, isValid, differenceInMinutes, format } from "date-fns";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function CirugiaForm({ mascota, propietario, data = {}, editar = false, onSave, onComplete, onClose }) {
   const [formData, setFormData] = useState({
@@ -17,6 +19,8 @@ export default function CirugiaForm({ mascota, propietario, data = {}, editar = 
     observaciones: data.observaciones || "",
     complicaciones: data.complicaciones || "",
     medicamentos: data.medicamentos || [{ nombre: "", presentacion: "", cantidad: "", posologia: "" }],
+    precio: data.precio || 100, // Default price for surgery
+    estado: data.estado || "pendiente", // Default payment status
     proximo_control_fecha: data.proximo_control ? format(new Date(data.proximo_control), "yyyy-MM-dd") : "",
     proximo_control_hora: data.proximo_control ? format(new Date(data.proximo_control), "HH:mm") : "",
   });
@@ -65,17 +69,27 @@ export default function CirugiaForm({ mascota, propietario, data = {}, editar = 
     cargarServicios();
   }, []);
 
-  const validateNumber = (value) => {
+  const validateNumber = (value, fieldName) => {
     if (value === "") return true; // Allow empty fields (optional)
     const regex = /^\d*\.?\d*$/;
-    return regex.test(value) && !isNaN(parseFloat(value)) ? true : "Debe ser un número válido.";
+    const isValidNumber = regex.test(value) && !isNaN(parseFloat(value));
+    if (!isValidNumber) return "Debe ser un número válido.";
+    if (fieldName === "precio" && parseFloat(value) < 0) return "El precio no puede ser negativo.";
+    return true;
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     let newErrors = { ...errors };
 
-    if (["procedimiento", "fecha"].includes(name)) {
+    if (name === "precio") {
+      const validationResult = validateNumber(value, name);
+      if (validationResult !== true) {
+        newErrors[name] = validationResult;
+      } else {
+        delete newErrors[name];
+      }
+    } else if (["procedimiento", "fecha"].includes(name)) {
       delete newErrors[name];
     }
 
@@ -90,7 +104,7 @@ export default function CirugiaForm({ mascota, propietario, data = {}, editar = 
 
     let newErrors = { ...errors };
     if (name === "cantidad") {
-      const validationResult = validateNumber(value);
+      const validationResult = validateNumber(value, name);
       if (validationResult !== true) {
         newErrors[`medicamento_${index}_cantidad`] = `Medicamento ${index + 1}: Cantidad debe ser un número válido.`;
       } else {
@@ -216,6 +230,29 @@ export default function CirugiaForm({ mascota, propietario, data = {}, editar = 
     }
   };
 
+  const marcarComoPagado = async () => {
+    if (!data._id) {
+      setErrors({ general: "ID de la cirugía no definido." });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`https://mascota-service.onrender.com/api/mascotas/cirugias/${data._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado: "pagado" }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || "Error al actualizar el estado de pago");
+      setFormData((prev) => ({ ...prev, estado: "pagado" }));
+      setErrors({ success: "✅ Cirugía marcada como pagada con éxito." });
+    } catch (err) {
+      setErrors({ general: `❌ Error al marcar como pagado: ${err.message}` });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("handleSubmit ejecutado - Inicio guardado de cirugía");
@@ -229,9 +266,12 @@ export default function CirugiaForm({ mascota, propietario, data = {}, editar = 
     if (!formData.procedimiento) {
       newErrors.procedimiento = "Procedimiento es obligatorio.";
     }
-
+    const precioValidation = validateNumber(formData.precio, "precio");
+    if (precioValidation !== true) {
+      newErrors.precio = `Precio: ${precioValidation}`;
+    }
     formData.medicamentos.forEach((med, index) => {
-      const validationResult = validateNumber(med.cantidad);
+      const validationResult = validateNumber(med.cantidad, "cantidad");
       if (validationResult !== true) {
         newErrors[`medicamento_${index}_cantidad`] = `Medicamento ${index + 1}: Cantidad debe ser un número válido.`;
       }
@@ -256,6 +296,7 @@ export default function CirugiaForm({ mascota, propietario, data = {}, editar = 
         ...med,
         cantidad: med.cantidad ? parseFloat(med.cantidad) : undefined,
       })),
+      precio: formData.precio ? parseFloat(formData.precio) : undefined,
       proximo_control: formData.proximo_control_fecha && formData.proximo_control_hora
         ? parse(`${formData.proximo_control_fecha} ${formData.proximo_control_hora}`, "yyyy-MM-dd HH:mm", new Date())
         : undefined,
@@ -328,11 +369,12 @@ export default function CirugiaForm({ mascota, propietario, data = {}, editar = 
   };
 
   const buttonStyle = {
-    borderRadius: "6px",
-    padding: "0.5rem 1rem",
-    fontSize: "0.9rem",
+    borderRadius: "8px",
+    padding: "0.6rem 1.2rem",
+    fontSize: "1rem",
     textTransform: "capitalize",
     transition: "all 0.3s ease",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
   };
 
   const buttonHover = {
@@ -342,6 +384,36 @@ export default function CirugiaForm({ mascota, propietario, data = {}, editar = 
 
   return (
     <>
+      <style jsx>{`
+        .form-control, .form-select {
+          background-color: #f8f9fa !important;
+          color: #212529 !important;
+          border-color: #ced4da !important;
+        }
+        .form-label {
+          color: #212529 !important;
+          font-weight: 600 !important;
+        }
+        .modal-content {
+          background-color: #ffffff !important;
+          color: #212529 !important;
+        }
+        .btn-close {
+          color: #ffffffff !important;
+          background-color: #ffffff !important;
+          border: 1px solid #ced4da !important;
+          border-radius: 50%;
+          width: 30px;
+          height: 30px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.2rem;
+        }
+        .close-btn:hover {
+          background-color: #e9ecef !important;
+        }
+      `}</style>
       <link
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
@@ -369,89 +441,134 @@ export default function CirugiaForm({ mascota, propietario, data = {}, editar = 
         <Row>
           <Col md={6}>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold"><i className="bi bi-calendar-event me-2"></i>Fecha</Form.Label>
+              <Form.Label><i className="bi bi-calendar-event me-2"></i>Fecha</Form.Label>
               <Form.Control
                 type="date"
                 name="fecha"
                 value={formData.fecha}
                 onChange={handleChange}
                 required
-                className="bg-dark text-light border-secondary"
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold"><i className="bi bi-scissors me-2"></i>Procedimiento</Form.Label>
+              <Form.Label><i className="bi bi-scissors me-2"></i>Procedimiento</Form.Label>
               <Form.Control
+                list="procedimiento-suggestions"
                 name="procedimiento"
                 value={formData.procedimiento}
                 onChange={handleChange}
                 required
-                className="bg-dark text-light border-secondary"
                 placeholder="Nombre del procedimiento"
               />
+              <datalist id="procedimiento-suggestions">
+                <option value="Esterilización" />
+                <option value="Castración" />
+                <option value="Cirugía de tejidos blandos" />
+                <option value="Cirugía ortopédica" />
+                <option value="Extracción dental" />
+              </datalist>
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold"><i className="bi bi-prescription me-2"></i>Pre-anestésico</Form.Label>
+              <Form.Label><i className="bi bi-prescription me-2"></i>Pre-anestésico</Form.Label>
               <Form.Control
+                list="preanestesico-suggestions"
                 name="preanestesico"
                 value={formData.preanestesico}
                 onChange={handleChange}
-                className="bg-dark text-light border-secondary"
                 placeholder="Medicamento pre-anestésico"
               />
+              <datalist id="preanestesico-suggestions">
+                <option value="Acepromazina" />
+                <option value="Midazolam" />
+                <option value="Diazepam" />
+                <option value="Butorfanol" />
+              </datalist>
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold"><i className="bi bi-syringe me-2"></i>Anestésico</Form.Label>
+              <Form.Label><i className="bi bi-syringe me-2"></i>Anestésico</Form.Label>
               <Form.Control
+                list="anestesico-suggestions"
                 name="anestesico"
                 value={formData.anestesico}
                 onChange={handleChange}
-                className="bg-dark text-light border-secondary"
                 placeholder="Anestésico utilizado"
               />
+              <datalist id="anestesico-suggestions">
+                <option value="Propofol" />
+                <option value="Isoflurano" />
+                <option value="Sevoflurano" />
+                <option value="Ketamina" />
+              </datalist>
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold"><i className="bi bi-capsule me-2"></i>Otros medicamentos</Form.Label>
+              <Form.Label><i className="bi bi-capsule me-2"></i>Otros medicamentos</Form.Label>
               <Form.Control
                 name="otros_medicamentos"
                 value={formData.otros_medicamentos}
                 onChange={handleChange}
-                className="bg-dark text-light border-secondary"
                 placeholder="Otros medicamentos administrados"
               />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label><i className="bi bi-currency-dollar me-2"></i>Precio</Form.Label>
+              <Form.Control
+                type="number"
+                name="precio"
+                value={formData.precio}
+                onChange={handleChange}
+                min="0"
+                step="0.01"
+                placeholder="Ej. 100.00"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label><i className="bi bi-wallet me-2"></i>Estado de Pago</Form.Label>
+              <Form.Control
+                value={formData.estado === "pendiente" ? "Por Pagar" : "Pagado"}
+                readOnly
+              />
+              {editar && formData.estado === "pendiente" && (
+                <Button
+                  variant="success"
+                  className="mt-2"
+                  onClick={marcarComoPagado}
+                  disabled={isSubmitting}
+                  style={buttonStyle}
+                  {...buttonHover}
+                >
+                  <i className="bi bi-check-circle-fill me-2"></i>Marcar como Pagado
+                </Button>
+              )}
             </Form.Group>
           </Col>
           <Col md={6}>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold"><i className="bi bi-clipboard-pulse me-2"></i>Tratamiento</Form.Label>
+              <Form.Label><i className="bi bi-clipboard-pulse me-2"></i>Tratamiento</Form.Label>
               <Form.Control
                 as="textarea"
                 name="tratamiento"
                 value={formData.tratamiento}
                 onChange={handleChange}
-                className="bg-dark text-light border-secondary"
                 placeholder="Tratamiento post-quirúrgico"
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold"><i className="bi bi-file-text me-2"></i>Observaciones</Form.Label>
+              <Form.Label><i className="bi bi-file-text me-2"></i>Observaciones</Form.Label>
               <Form.Control
                 as="textarea"
                 name="observaciones"
                 value={formData.observaciones}
                 onChange={handleChange}
-                className="bg-dark text-light border-secondary"
                 placeholder="Observaciones de la cirugía"
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold"><i className="bi bi-exclamation-triangle me-2"></i>Complicaciones</Form.Label>
+              <Form.Label><i className="bi bi-exclamation-triangle me-2"></i>Complicaciones</Form.Label>
               <Form.Control
                 as="textarea"
                 name="complicaciones"
                 value={formData.complicaciones}
                 onChange={handleChange}
-                className="bg-dark text-light border-secondary"
                 placeholder="Complicaciones observadas"
               />
             </Form.Group>
@@ -459,17 +576,23 @@ export default function CirugiaForm({ mascota, propietario, data = {}, editar = 
         </Row>
 
         <hr />
-        <h6 className="fw-bold"><i className="bi bi-capsule-pill me-2"></i>Medicamentos</h6>
+        <h6><i className="bi bi-capsule-pill me-2"></i>Medicamentos</h6>
         {formData.medicamentos.map((med, i) => (
           <Row key={i} className="mb-3">
             <Col md={3}>
               <Form.Control
+                list="medicamento-nombre-suggestions"
                 placeholder="Nombre"
                 name="nombre"
                 value={med.nombre}
                 onChange={(e) => handleMedicamentoChange(i, e)}
-                className="bg-dark text-light border-secondary"
               />
+              <datalist id="medicamento-nombre-suggestions">
+                <option value="Amoxicilina" />
+                <option value="Meloxicam" />
+                <option value="Tramadol" />
+                <option value="Enrofloxacina" />
+              </datalist>
             </Col>
             <Col md={3}>
               <Form.Control
@@ -477,7 +600,6 @@ export default function CirugiaForm({ mascota, propietario, data = {}, editar = 
                 name="presentacion"
                 value={med.presentacion}
                 onChange={(e) => handleMedicamentoChange(i, e)}
-                className="bg-dark text-light border-secondary"
               />
             </Col>
             <Col md={3}>
@@ -488,7 +610,6 @@ export default function CirugiaForm({ mascota, propietario, data = {}, editar = 
                 onChange={(e) => handleMedicamentoChange(i, e)}
                 type="number"
                 step="0.1"
-                className="bg-dark text-light border-secondary"
               />
             </Col>
             <Col md={3}>
@@ -497,13 +618,12 @@ export default function CirugiaForm({ mascota, propietario, data = {}, editar = 
                 name="posologia"
                 value={med.posologia}
                 onChange={(e) => handleMedicamentoChange(i, e)}
-                className="bg-dark text-light border-secondary"
               />
             </Col>
           </Row>
         ))}
         <Button
-          variant="secondary"
+          variant="outline-secondary"
           size="sm"
           onClick={agregarMedicamento}
           className="mb-3"
@@ -514,37 +634,35 @@ export default function CirugiaForm({ mascota, propietario, data = {}, editar = 
         </Button>
 
         <hr />
-        <h6 className="fw-bold"><i className="bi bi-calendar-fill me-2"></i>Próximo Control</h6>
+        <h6><i className="bi bi-calendar-fill me-2"></i>Próximo Control</h6>
         <Row className="mb-3">
           <Col md={6}>
             <Form.Group>
-              <Form.Label className="fw-bold">Fecha</Form.Label>
+              <Form.Label>Fecha</Form.Label>
               <Form.Control
                 type="date"
                 name="proximo_control_fecha"
                 value={formData.proximo_control_fecha}
                 onChange={handleChange}
-                className="bg-dark text-light border-secondary"
               />
             </Form.Group>
           </Col>
           <Col md={6}>
             <Form.Group>
-              <Form.Label className="fw-bold">Hora</Form.Label>
+              <Form.Label>Hora</Form.Label>
               <Form.Control
                 type="time"
                 name="proximo_control_hora"
                 value={formData.proximo_control_hora}
                 onChange={handleChange}
-                className="bg-dark text-light border-secondary"
               />
             </Form.Group>
           </Col>
         </Row>
 
-        <div className="d-flex justify-content-end mt-3">
+        <div className="d-flex justify-content-end mt-4">
           <Button
-            variant="secondary"
+            variant="outline-secondary"
             onClick={handleCerrar}
             className="me-2"
             disabled={isSubmitting}
@@ -582,18 +700,35 @@ export default function CirugiaForm({ mascota, propietario, data = {}, editar = 
         backdrop="static"
         keyboard={false}
         centered
-        className="fade"
       >
-        <Modal.Header closeButton className="bg-dark text-white border-secondary">
+        <Modal.Header className="border-0">
           <Modal.Title><i className="bi bi-calendar-check-fill me-2"></i>Confirmar cita</Modal.Title>
+          <Button
+            variant="primary"
+            className="close-btn text-white"
+            onClick={() => {
+              console.log("Botón cerrar modal clicado");
+              setMostrarModalConfirmacion(false);
+              setIntentoCerrar(false);
+              if (cirugiaGuardada || intentoCerrar) {
+                if (editar) {
+                  onClose();
+                } else {
+                  onComplete();
+                }
+              }
+            }}
+          >
+            <i className="bi bi-x"></i>
+          </Button>
         </Modal.Header>
-        <Modal.Body className="bg-dark text-white">
+        <Modal.Body>
           ¿Deseas agendar una cita para el próximo control en {formData.proximo_control_fecha} a las{" "}
           {formData.proximo_control_hora}?
         </Modal.Body>
-        <Modal.Footer className="bg-dark border-secondary">
+        <Modal.Footer className="border-0">
           <Button
-            variant="secondary"
+            variant="outline-secondary"
             onClick={() => {
               console.log("Botón 'No' clicado");
               setMostrarModalConfirmacion(false);

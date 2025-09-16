@@ -1,11 +1,11 @@
-
 "use client";
 import { useState, useEffect } from "react";
 import { Form, Button, Row, Col, Modal, Alert } from "react-bootstrap";
 import { parse, isValid, differenceInMinutes, format } from "date-fns";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function ConsultaForm({ mascota, propietario, data = {}, editar = false, onSave, onComplete, onClose }) {
-  const veterinario = JSON.parse(localStorage.getItem("user"));
+  const veterinario = JSON.parse(localStorage.getItem("user") || "{}");
 
   const [formData, setFormData] = useState({
     mascota_id: mascota._id || mascota.id,
@@ -38,6 +38,8 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
       piel_y_pelo: data.examen_fisico?.piel_y_pelo || "",
       observaciones: data.examen_fisico?.observaciones || "",
     },
+    precio: data.precio || 50,
+    estado: data.estado || "pendiente",
   });
 
   const [mostrarExamenFisico, setMostrarExamenFisico] = useState(false);
@@ -50,31 +52,25 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
   useEffect(() => {
     const cargarReservas = async () => {
       try {
-        if (!veterinario?.id) {
-          throw new Error("ID del veterinario no definido.");
-        }
+        if (!veterinario?.id) throw new Error("ID del veterinario no definido.");
         const res = await fetch(`https://servicios-veterinarios.onrender.com/api/servicios-veterinarios/reservas/veterinario/${veterinario.id}`);
+        if (!res.ok) throw new Error("Error al cargar reservas");
         const data = await res.json();
-        const transformadas = data.map((r) => ({ ...r, fecha: new Date(r.fecha) }));
-        setReservas(transformadas);
+        setReservas(data.map((r) => ({ ...r, fecha: new Date(r.fecha) })));
       } catch (err) {
-        console.error("Error cargando reservas:", err);
         setErrors({ general: "❌ Error cargando reservas: " + err.message });
       }
     };
-    if (veterinario?.id) {
-      cargarReservas();
-    }
+    if (veterinario?.id) cargarReservas();
   }, [veterinario?.id]);
 
   useEffect(() => {
     const cargarServicios = async () => {
       try {
         const res = await fetch("https://servicios-veterinarios.onrender.com/api/servicios-veterinarios/servicios");
-        const data = await res.json();
-        setServicios(data);
+        if (!res.ok) throw new Error("Error al cargar servicios");
+        setServicios(await res.json());
       } catch (err) {
-        console.error("Error cargando servicios:", err);
         setErrors({ general: "❌ Error cargando servicios: " + err.message });
       }
     };
@@ -82,17 +78,14 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
   }, []);
 
   const validateNumber = (value, fieldName) => {
-    if (value === "") return true; // Allow empty fields (optional)
+    if (value === "") return true;
     if (fieldName === "presion_arterial") {
-      const regex = /^\d{1,3}\/\d{1,3}$/;
-      return regex.test(value) ? true : "Debe ser un valor como '120/80'.";
+      return /^\d{1,3}\/\d{1,3}$/.test(value) ? true : "Debe ser un valor como '120/80'.";
     }
     if (fieldName === "frecuencia_cardiaca" || fieldName === "frecuencia_respiratoria") {
-      const regex = /^\d+(\s*(lpm|rpm))?$/;
-      return regex.test(value) ? true : `Debe ser un número válido (ej. '120 lpm' para Frecuencia Cardíaca, '30 rpm' para Frecuencia Respiratoria).`;
+      return /^\d+(\s*(lpm|rpm))?$/.test(value) ? true : `Debe ser un número válido (ej. '120 lpm' o '30 rpm').`;
     }
-    const regex = /^\d*\.?\d*$/;
-    return regex.test(value) && !isNaN(parseFloat(value)) ? true : "Debe ser un número válido.";
+    return /^\d*\.?\d*$/.test(value) && !isNaN(parseFloat(value)) ? true : "Debe ser un número válido.";
   };
 
   const handleChange = (e) => {
@@ -101,11 +94,9 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
 
     if (["temperatura", "peso", "frecuencia_cardiaca", "frecuencia_respiratoria", "presion_arterial"].includes(name)) {
       const validationResult = validateNumber(value, name);
-      if (validationResult !== true) {
-        newErrors[name] = validationResult;
-      } else {
-        delete newErrors[name];
-      }
+      newErrors[name] = validationResult === true ? undefined : validationResult;
+    } else if (name === "precio" && value < 0) {
+      newErrors.precio = "El precio no puede ser negativo.";
     } else {
       delete newErrors[name];
     }
@@ -123,7 +114,6 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
 
   const validarCita = () => {
     const { proximo_control_fecha, proximo_control_hora } = formData;
-
     if (!proximo_control_fecha || !proximo_control_hora) {
       return { isValid: false, error: "⚠️ Debes ingresar la fecha y hora del próximo control." };
     }
@@ -140,10 +130,7 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
 
     const hora = fechaHora.getHours();
     if (hora < 7 || hora >= 21) {
-      return {
-        isValid: false,
-        error: "⚠️ Solo se pueden agendar citas entre las 07:00 y las 21:00.",
-      };
+      return { isValid: false, error: "⚠️ Solo se pueden agendar citas entre las 07:00 y las 21:00." };
     }
 
     const hoy = new Date();
@@ -152,11 +139,7 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
       return { isValid: false, error: "⚠️ No puedes agendar citas en fechas pasadas." };
     }
 
-    const conflicto = reservas.some((r) => {
-      const diff = Math.abs(differenceInMinutes(fechaHora, new Date(r.fecha)));
-      return diff < 60;
-    });
-
+    const conflicto = reservas.some((r) => Math.abs(differenceInMinutes(fechaHora, new Date(r.fecha))) < 60);
     if (conflicto) {
       return { isValid: false, error: "⚠️ Ya hay una cita dentro del rango de 1 hora." };
     }
@@ -170,12 +153,7 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
   };
 
   const agendarCita = async () => {
-    console.log("agendarCita ejecutado", {
-      fecha: formData.proximo_control_fecha,
-      hora: formData.proximo_control_hora,
-    });
     setErrors({});
-
     const validacion = validarCita();
     if (!validacion.isValid) {
       setErrors({ general: validacion.error });
@@ -183,9 +161,8 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
     }
 
     const { fechaHora, servicioConsulta } = validacion;
-
-    if (!veterinario) {
-      setErrors({ general: "❌ No se encontró información del veterinario. Por favor, inicia sesión nuevamente." });
+    if (!veterinario?.id) {
+      setErrors({ general: "❌ No se encontró información del veterinario." });
       return;
     }
 
@@ -204,27 +181,13 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(cita),
       });
-
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Error al agendar cita");
-
-      console.log("Cita agendada con éxito");
+      if (!res.ok) throw new Error((await res.json()).error || "Error al agendar cita");
       setErrors({ success: "✅ Cita agendada con éxito." });
       setMostrarModalConfirmacion(false);
-      if (editar) {
-        onClose();
-      } else {
-        onComplete();
-      }
+      if (editar) onClose();
+      else onComplete();
     } catch (err) {
-      console.error("Error en agendarCita:", err);
       setErrors({ general: "❌ Error al agendar cita: " + err.message });
-      setMostrarModalConfirmacion(false);
-      if (editar) {
-        onClose();
-      } else {
-        onComplete();
-      }
     } finally {
       setIsSubmitting(false);
     }
@@ -232,7 +195,6 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("handleSubmit ejecutado - Inicio guardado de consulta");
     setIsSubmitting(true);
     setErrors({});
 
@@ -248,18 +210,11 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
     numericFields.forEach(({ key, label }) => {
       const value = formData.examen_fisico[key];
       const validationResult = validateNumber(value, key);
-      if (validationResult !== true) {
-        newErrors[key] = `${label}: ${validationResult}`;
-      }
+      if (validationResult !== true) newErrors[key] = `${label}: ${validationResult}`;
     });
 
-    if (!formData.motivo) {
-      newErrors.motivo = "Motivo es obligatorio.";
-    }
-
-    if (!formData.fecha) {
-      newErrors.fecha = "Fecha es obligatoria.";
-    }
+    if (!formData.motivo) newErrors.motivo = "Motivo es obligatorio.";
+    if (!formData.fecha) newErrors.fecha = "Fecha es obligatoria.";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -267,8 +222,8 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
       return;
     }
 
-    if (!veterinario) {
-      setErrors({ general: "❌ No se encontró información del veterinario. Por favor, inicia sesión nuevamente." });
+    if (!veterinario?.id) {
+      setErrors({ general: "❌ No se encontró información del veterinario." });
       setIsSubmitting(false);
       return;
     }
@@ -288,76 +243,76 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
       proximo_control_hora: undefined,
     };
 
-    console.log("Payload enviado:", payload);
-
     try {
       if (editar) {
-        if (!data._id) {
-          throw new Error("ID de la consulta no definido.");
-        }
+        if (!data._id) throw new Error("ID de la consulta no definido.");
         const res = await fetch(`https://mascota-service.onrender.com/api/mascotas/consultas/${data._id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-
-        const result = await res.json();
-        if (!res.ok) {
-          throw new Error(result.error || "Error al actualizar la consulta");
-        }
-
+        if (!res.ok) throw new Error((await res.json()).error || "Error al actualizar la consulta");
         setErrors({ success: "✅ Consulta actualizada con éxito." });
         if (formData.proximo_control_fecha && formData.proximo_control_hora) {
-          console.log("Mostrando modal de confirmación para cita (editar)");
           setMostrarModalConfirmacion(true);
         } else {
-          console.log("No se ingresó próximo control, cerrando formulario (editar)");
           onClose();
         }
       } else {
         await onSave(payload);
         setErrors({ success: "✅ Consulta creada con éxito." });
         if (formData.proximo_control_fecha && formData.proximo_control_hora) {
-          console.log("Mostrando modal de confirmación para cita (crear)");
           setMostrarModalConfirmacion(true);
         } else {
-          console.log("No se ingresó próximo control, completando flujo (crear)");
           onComplete();
         }
       }
     } catch (err) {
-      console.error("Error en handleSubmit:", err);
       setErrors({ general: `❌ Error al guardar la consulta: ${err.message}` });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleCerrar = () => {
-    console.log("handleCerrar ejecutado", {
-      proximo_control_fecha: formData.proximo_control_fecha,
-      proximo_control_hora: formData.proximo_control_hora,
-    });
+  const marcarComoPagado = async () => {
+    if (!data._id) {
+      setErrors({ general: "ID de la consulta no definido." });
+      return;
+    }
 
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`https://mascota-service.onrender.com/api/mascotas/consultas/${data._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado: "pagado" }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || "Error al actualizar el estado de pago");
+      setFormData((prev) => ({ ...prev, estado: "pagado" }));
+      setErrors({ success: "✅ Consulta marcada como pagada con éxito." });
+    } catch (err) {
+      setErrors({ general: `❌ Error al marcar como pagada: ${err.message}` });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCerrar = () => {
     if (formData.proximo_control_fecha && formData.proximo_control_hora) {
-      console.log("Mostrando modal de confirmación antes de cerrar");
       setMostrarModalConfirmacion(true);
     } else {
-      console.log("No se ingresó próximo control, cerrando formulario");
-      if (editar) {
-        onClose();
-      } else {
-        onComplete();
-      }
+      if (editar) onClose();
+      else onComplete();
     }
   };
 
   const buttonStyle = {
-    borderRadius: "6px",
-    padding: "0.5rem 1rem",
-    fontSize: "0.9rem",
+    borderRadius: "8px",
+    padding: "0.6rem 1.2rem",
+    fontSize: "1rem",
     textTransform: "capitalize",
     transition: "all 0.3s ease",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
   };
 
   const buttonHover = {
@@ -365,8 +320,82 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
     onMouseLeave: (e) => (e.target.style.transform = "translateY(0)"),
   };
 
+  const motivosOptions = [
+    "Consulta general",
+    "Revisión/Chequeo",
+    "Acupuntura",
+    "Alergología",
+    "Anestesiología",
+    "Cardiología",
+    "Dermatología",
+    "Urgencias",
+    "Endocrinología",
+    "Etología",
+    "Gastroenterología",
+    "Hospitalización",
+    "Cuidados críticos o intensivos",
+    "Cirugía laser",
+    "Nefrología",
+    "Neurología",
+    "Nutrición",
+    "Reproducción u obstetricia",
+    "Odontología",
+    "Oncología",
+    "Oftalmología",
+    "Ortopedia",
+    "Fisioterapia",
+    "Neumología",
+    "Consulta preanestésica",
+    "Consulta prequirúrgica",
+    "Psicología",
+    "Cirugía tejidos blandos",
+    "Esterilización",
+    "Medicina felina",
+    "Vacunación",
+    "Desparasitación",
+    "Cirugía",
+    "Examen de laboratorio",
+    "Laboratorio clínico",
+    "Resonancia magnética",
+    "Tomografía",
+    "Ecografía",
+    "Radiografía (Rayos X)",
+    "Peluquería o Spa",
+    "Otro",
+  ];
+
   return (
     <>
+      <style jsx>{`
+        .form-control, .form-select {
+          background-color: #f8f9fa !important;
+          color: #212529 !important;
+          border-color: #ced4da !important;
+        }
+        .form-label {
+          color: #212529 !important;
+          font-weight: 600 !important;
+        }
+        .modal-content {
+          background-color: #ffffff !important;
+          color: #212529 !important;
+        }
+        .btn-close {
+          color: #ffffffff !important;
+          background-color: #ffffff !important;
+          border: 1px solid #ced4da !important;
+          border-radius: 50%;
+          width: 30px;
+          height: 30px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.2rem;
+        }
+        .close-btn:hover {
+          background-color: #e9ecef !important;
+        }
+      `}</style>
       <link
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
@@ -385,7 +414,7 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
         {Object.keys(errors).length > 0 && !errors.success && !errors.general && (
           <Alert variant="danger" onClose={() => setErrors({})} dismissible className="shadow-sm">
             <ul className="mb-0">
-              {Object.values(errors).map((err, i) => (
+              {Object.values(errors).filter(Boolean).map((err, i) => (
                 <li key={i}>{err}</li>
               ))}
             </ul>
@@ -394,98 +423,124 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
         <Row>
           <Col md={6}>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold"><i className="bi bi-calendar-event me-2"></i>Fecha</Form.Label>
+              <Form.Label><i className="bi bi-calendar-event me-2"></i>Fecha</Form.Label>
               <Form.Control
                 type="date"
                 name="fecha"
                 value={formData.fecha}
                 onChange={handleChange}
                 required
-                className="bg-dark text-light border-secondary"
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold"><i className="bi bi-clipboard-check me-2"></i>Motivo</Form.Label>
-              <Form.Control
+              <Form.Label><i className="bi bi-clipboard-check me-2"></i>Motivo</Form.Label>
+              <Form.Select
                 name="motivo"
-                placeholder="El motivo de la consulta"
                 value={formData.motivo}
                 onChange={handleChange}
                 required
-                className="bg-dark text-light border-secondary"
-              />
+              >
+                <option value="">Selecciona un motivo</option>
+                {motivosOptions.map((option, index) => (
+                  <option key={index} value={option}>{option}</option>
+                ))}
+              </Form.Select>
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold"><i className="bi bi-list-check me-2"></i>Objetivo</Form.Label>
+              <Form.Label><i className="bi bi-list-check me-2"></i>Objetivo</Form.Label>
               <Form.Control
                 name="objetivo"
-                placeholder="Listado de problemas o detalles del examen"
+                placeholder="Detalles del examen, lista de problemas"
                 value={formData.objetivo}
                 onChange={handleChange}
-                className="bg-dark text-light border-secondary"
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold"><i className="bi bi-file-medical me-2"></i>Subjetivo</Form.Label>
+              <Form.Label><i className="bi bi-file-medical me-2"></i>Subjetivo</Form.Label>
               <Form.Control
                 name="subjetivo"
-                placeholder="Situación actual de la mascota y/o antecedentes"
+                placeholder="Motivo de consulta"
                 value={formData.subjetivo}
                 onChange={handleChange}
-                className="bg-dark text-light border-secondary"
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold"><i className="bi bi-clipboard-pulse me-2"></i>Interpretación</Form.Label>
+              <Form.Label><i className="bi bi-clipboard-pulse me-2"></i>Interpretación</Form.Label>
               <Form.Control
                 name="interpretacion"
-                placeholder="Diagnóstico presuntivo o diferencial"
+                placeholder="Diagnóstico presuntivo y final"
                 value={formData.interpretacion}
                 onChange={handleChange}
-                className="bg-dark text-light border-secondary"
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold"><i className="bi bi-prescription me-2"></i>Plan Terapéutico</Form.Label>
+              <Form.Label><i className="bi bi-prescription me-2"></i>Plan Terapéutico</Form.Label>
               <Form.Control
                 name="plan_terapeutico"
-                placeholder="Plan terapéutico final y/o tratamiento"
+                placeholder="Tratamiento y demás"
                 value={formData.plan_terapeutico}
                 onChange={handleChange}
-                className="bg-dark text-light border-secondary"
               />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label><i className="bi bi-currency-dollar me-2"></i>Precio</Form.Label>
+              <Form.Control
+                type="number"
+                name="precio"
+                value={formData.precio}
+                onChange={handleChange}
+                min="0"
+                step="0.01"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label><i className="bi bi-wallet me-2"></i>Estado de Pago</Form.Label>
+              <Form.Control
+                value={formData.estado === "pendiente" ? "Por Pagar" : "Pagado"}
+                readOnly
+              />
+              {editar && formData.estado === "pendiente" && (
+                <Button
+                  variant="success"
+                  className="mt-2"
+                  onClick={marcarComoPagado}
+                  disabled={isSubmitting}
+                  style={buttonStyle}
+                  {...buttonHover}
+                >
+                  <i className="bi bi-check-circle-fill me-2"></i>Marcar como Pagado
+                </Button>
+              )}
             </Form.Group>
           </Col>
           <Col md={6}>
-            <h6 className="fw-bold"><i className="bi bi-calendar-fill me-2"></i>Próximo Control</h6>
+            <h6><i className="bi bi-calendar-fill me-2"></i>Próximo Control</h6>
             <Row className="mb-3">
               <Col md={6}>
                 <Form.Group>
-                  <Form.Label className="fw-bold">Fecha</Form.Label>
+                  <Form.Label>Fecha</Form.Label>
                   <Form.Control
                     type="date"
                     name="proximo_control_fecha"
                     value={formData.proximo_control_fecha}
                     onChange={handleChange}
-                    className="bg-dark text-light border-secondary"
                   />
                 </Form.Group>
               </Col>
               <Col md={6}>
                 <Form.Group>
-                  <Form.Label className="fw-bold">Hora</Form.Label>
+                  <Form.Label>Hora</Form.Label>
                   <Form.Control
                     type="time"
                     name="proximo_control_hora"
                     value={formData.proximo_control_hora}
                     onChange={handleChange}
-                    className="bg-dark text-light border-secondary"
                   />
                 </Form.Group>
               </Col>
             </Row>
             <Button
-              variant="secondary"
+              variant="outline-primary"
               size="sm"
               onClick={() => setMostrarExamenFisico(!mostrarExamenFisico)}
               className="mb-3"
@@ -497,188 +552,271 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
             </Button>
             {mostrarExamenFisico && (
               <>
-                <h6 className="fw-bold"><i className="bi bi-heart-pulse-fill me-2"></i>Examen Físico</h6>
+                <h6><i className="bi bi-heart-pulse-fill me-2"></i>Examen Físico</h6>
                 <Row>
                   <Col md={6}>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-bold">Temperatura</Form.Label>
+                      <Form.Label>Temperatura</Form.Label>
                       <Form.Control
+                        list="temperatura-suggestions"
                         type="number"
                         step="0.1"
                         name="temperatura"
                         value={formData.examen_fisico.temperatura}
                         onChange={handleChange}
-                        className="bg-dark text-light border-secondary"
                         placeholder="Ej. 38.5"
                       />
+                      <datalist id="temperatura-suggestions">
+                        <option value="38.5" />
+                        <option value="39.0" />
+                        <option value="37.5" />
+                      </datalist>
                     </Form.Group>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-bold">Unidad de Temperatura</Form.Label>
+                      <Form.Label>Unidad de Temperatura</Form.Label>
                       <Form.Select
                         name="unidad_temperatura"
                         value={formData.examen_fisico.unidad_temperatura}
                         onChange={handleChange}
-                        className="bg-dark text-light border-secondary"
                       >
                         <option value="°C">°C</option>
                         <option value="°F">°F</option>
                       </Form.Select>
                     </Form.Group>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-bold">Peso</Form.Label>
+                      <Form.Label>Peso</Form.Label>
                       <Form.Control
+                        list="peso-suggestions"
                         type="number"
                         step="0.1"
                         name="peso"
                         value={formData.examen_fisico.peso}
                         onChange={handleChange}
-                        className="bg-dark text-light border-secondary"
                         placeholder="Ej. 5.2"
                       />
+                      <datalist id="peso-suggestions">
+                        <option value="5.2" />
+                        <option value="10.0" />
+                        <option value="2.5" />
+                      </datalist>
                     </Form.Group>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-bold">Unidad de Peso</Form.Label>
+                      <Form.Label>Unidad de Peso</Form.Label>
                       <Form.Select
                         name="unidad_peso"
                         value={formData.examen_fisico.unidad_peso}
                         onChange={handleChange}
-                        className="bg-dark text-light border-secondary"
                       >
                         <option value="kg">kg</option>
                         <option value="lb">lb</option>
                       </Form.Select>
                     </Form.Group>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-bold">Frecuencia Cardíaca</Form.Label>
+                      <Form.Label>Frecuencia Cardíaca</Form.Label>
                       <Form.Control
+                        list="frecuencia_cardiaca-suggestions"
                         name="frecuencia_cardiaca"
                         value={formData.examen_fisico.frecuencia_cardiaca}
                         onChange={handleChange}
-                        className="bg-dark text-light border-secondary"
                         placeholder="Ej. 120 lpm"
                       />
+                      <datalist id="frecuencia_cardiaca-suggestions">
+                        <option value="120 lpm" />
+                        <option value="100 lpm" />
+                        <option value="80 lpm" />
+                      </datalist>
                     </Form.Group>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-bold">Frecuencia Respiratoria</Form.Label>
+                      <Form.Label>Frecuencia Respiratoria</Form.Label>
                       <Form.Control
+                        list="frecuencia_respiratoria-suggestions"
                         name="frecuencia_respiratoria"
                         value={formData.examen_fisico.frecuencia_respiratoria}
                         onChange={handleChange}
-                        className="bg-dark text-light border-secondary"
                         placeholder="Ej. 30 rpm"
                       />
+                      <datalist id="frecuencia_respiratoria-suggestions">
+                        <option value="30 rpm" />
+                        <option value="20 rpm" />
+                        <option value="40 rpm" />
+                      </datalist>
                     </Form.Group>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-bold">Presión Arterial</Form.Label>
+                      <Form.Label>Presión Arterial</Form.Label>
                       <Form.Control
+                        list="presion_arterial-suggestions"
                         name="presion_arterial"
                         value={formData.examen_fisico.presion_arterial}
                         onChange={handleChange}
-                        className="bg-dark text-light border-secondary"
                         placeholder="Ej. 120/80"
                       />
+                      <datalist id="presion_arterial-suggestions">
+                        <option value="120/80" />
+                        <option value="130/85" />
+                        <option value="110/70" />
+                      </datalist>
                     </Form.Group>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-bold">Reflejos</Form.Label>
+                      <Form.Label>Reflejos</Form.Label>
                       <Form.Control
+                        list="reflejos-suggestions"
                         name="reflejos"
                         value={formData.examen_fisico.reflejos}
                         onChange={handleChange}
-                        className="bg-dark text-light border-secondary"
+                        placeholder="Ej. Normales"
                       />
+                      <datalist id="reflejos-suggestions">
+                        <option value="Normales" />
+                        <option value="Disminuidos" />
+                        <option value="Aumentados" />
+                      </datalist>
                     </Form.Group>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-bold">Pulso</Form.Label>
+                      <Form.Label>Pulso</Form.Label>
                       <Form.Control
+                        list="pulso-suggestions"
                         name="pulso"
                         value={formData.examen_fisico.pulso}
                         onChange={handleChange}
-                        className="bg-dark text-light border-secondary"
+                        placeholder="Ej. Fuerte"
                       />
+                      <datalist id="pulso-suggestions">
+                        <option value="Fuerte" />
+                        <option value="Débil" />
+                        <option value="Normal" />
+                      </datalist>
                     </Form.Group>
                   </Col>
                   <Col md={6}>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-bold">Mucosas</Form.Label>
+                      <Form.Label>Mucosas</Form.Label>
                       <Form.Control
+                        list="mucosas-suggestions"
                         name="mucosas"
                         value={formData.examen_fisico.mucosas}
                         onChange={handleChange}
-                        className="bg-dark text-light border-secondary"
+                        placeholder="Ej. Rosadas y húmedas"
                       />
+                      <datalist id="mucosas-suggestions">
+                        <option value="Rosadas y húmedas" />
+                        <option value="Pálidas" />
+                        <option value="Cianóticas" />
+                      </datalist>
                     </Form.Group>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-bold">Palpitación</Form.Label>
+                      <Form.Label>Palpitación</Form.Label>
                       <Form.Control
+                        list="palpitacion-suggestions"
                         name="palpitacion"
                         value={formData.examen_fisico.palpitacion}
                         onChange={handleChange}
-                        className="bg-dark text-light border-secondary"
+                        placeholder="Ej. Normal"
                       />
+                      <datalist id="palpitacion-suggestions">
+                        <option value="Normal" />
+                        <option value="Irregular" />
+                        <option value="Acelerada" />
+                      </datalist>
                     </Form.Group>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-bold">Dentadura</Form.Label>
+                      <Form.Label>Dentadura</Form.Label>
                       <Form.Control
+                        list="dentadura-suggestions"
                         name="dentadura"
                         value={formData.examen_fisico.dentadura}
                         onChange={handleChange}
-                        className="bg-dark text-light border-secondary"
+                        placeholder="Ej. Completa"
                       />
+                      <datalist id="dentadura-suggestions">
+                        <option value="Completa" />
+                        <option value="Incompleta" />
+                        <option value="Con problemas" />
+                      </datalist>
                     </Form.Group>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-bold">Encías</Form.Label>
+                      <Form.Label>Encías</Form.Label>
                       <Form.Control
+                        list="encias-suggestions"
                         name="encias"
                         value={formData.examen_fisico.encias}
                         onChange={handleChange}
-                        className="bg-dark text-light border-secondary"
+                        placeholder="Ej. Saludables"
                       />
+                      <datalist id="encias-suggestions">
+                        <option value="Saludables" />
+                        <option value="Inflamadas" />
+                        <option value="Sangrantes" />
+                      </datalist>
                     </Form.Group>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-bold">Sarro</Form.Label>
+                      <Form.Label>Sarro</Form.Label>
                       <Form.Control
+                        list="sarro-suggestions"
                         name="sarro"
                         value={formData.examen_fisico.sarro}
                         onChange={handleChange}
-                        className="bg-dark text-light border-secondary"
+                        placeholder="Ej. Leve"
                       />
+                      <datalist id="sarro-suggestions">
+                        <option value="Leve" />
+                        <option value="Moderado" />
+                        <option value="Severo" />
+                      </datalist>
                     </Form.Group>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-bold">Ojos</Form.Label>
+                      <Form.Label>Ojos</Form.Label>
                       <Form.Control
+                        list="ojos-suggestions"
                         name="ojos"
                         value={formData.examen_fisico.ojos}
                         onChange={handleChange}
-                        className="bg-dark text-light border-secondary"
+                        placeholder="Ej. Claros"
                       />
+                      <datalist id="ojos-suggestions">
+                        <option value="Claros" />
+                        <option value="Rojos" />
+                        <option value="Nublados" />
+                      </datalist>
                     </Form.Group>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-bold">Orejas</Form.Label>
+                      <Form.Label>Orejas</Form.Label>
                       <Form.Control
+                        list="orejas-suggestions"
                         name="orejas"
                         value={formData.examen_fisico.orejas}
                         onChange={handleChange}
-                        className="bg-dark text-light border-secondary"
+                        placeholder="Ej. Limpias"
                       />
+                      <datalist id="orejas-suggestions">
+                        <option value="Limpias" />
+                        <option value="Con secreción" />
+                        <option value="Inflamadas" />
+                      </datalist>
                     </Form.Group>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-bold">Piel y Pelo</Form.Label>
+                      <Form.Label>Piel y Pelo</Form.Label>
                       <Form.Control
+                        list="piel_y_pelo-suggestions"
                         name="piel_y_pelo"
                         value={formData.examen_fisico.piel_y_pelo}
                         onChange={handleChange}
-                        className="bg-dark text-light border-secondary"
+                        placeholder="Ej. Saludable"
                       />
+                      <datalist id="piel_y_pelo-suggestions">
+                        <option value="Saludable" />
+                        <option value="Con irritación" />
+                        <option value="Seco" />
+                      </datalist>
                     </Form.Group>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-bold">Observaciones</Form.Label>
+                      <Form.Label>Observaciones</Form.Label>
                       <Form.Control
                         as="textarea"
                         rows={2}
                         name="observaciones"
                         value={formData.examen_fisico.observaciones}
                         onChange={handleChange}
-                        className="bg-dark text-light border-secondary"
+                        placeholder="Ej. Ninguna anormalidad detectada"
                       />
                     </Form.Group>
                   </Col>
@@ -688,9 +826,9 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
           </Col>
         </Row>
 
-        <div className="d-flex justify-content-end mt-3">
+        <div className="d-flex justify-content-end mt-4">
           <Button
-            variant="secondary"
+            variant="outline-secondary"
             onClick={handleCerrar}
             className="me-2"
             disabled={isSubmitting}
@@ -714,37 +852,39 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
       <Modal
         show={mostrarModalConfirmacion}
         onHide={() => {
-          console.log("onHide modal confirmación ejecutado");
           setMostrarModalConfirmacion(false);
-          if (editar) {
-            onClose();
-          } else {
-            onComplete();
-          }
+          if (editar) onClose();
+          else onComplete();
         }}
         backdrop="static"
         keyboard={false}
         centered
-        className="fade"
       >
-        <Modal.Header closeButton className="bg-dark text-white border-secondary">
+        <Modal.Header className="border-0">
           <Modal.Title><i className="bi bi-calendar-check-fill me-2"></i>Confirmar cita</Modal.Title>
+          <Button
+            variant="primary"
+            className="close-btn text-white"
+            onClick={() => {
+              setMostrarModalConfirmacion(false);
+              if (editar) onClose();
+              else onComplete();
+            }}
+          >
+            <i className="bi bi-x"></i>
+          </Button>
         </Modal.Header>
-        <Modal.Body className="bg-dark text-white">
+        <Modal.Body>
           ¿Deseas agendar una cita para el próximo control en {formData.proximo_control_fecha} a las{" "}
           {formData.proximo_control_hora}?
         </Modal.Body>
-        <Modal.Footer className="bg-dark border-secondary">
+        <Modal.Footer className="border-0">
           <Button
-            variant="secondary"
+            variant="outline-secondary"
             onClick={() => {
-              console.log("Botón 'No' clicado");
               setMostrarModalConfirmacion(false);
-              if (editar) {
-                onClose();
-              } else {
-                onComplete();
-              }
+              if (editar) onClose();
+              else onComplete();
             }}
             style={buttonStyle}
             {...buttonHover}
@@ -753,10 +893,7 @@ export default function ConsultaForm({ mascota, propietario, data = {}, editar =
           </Button>
           <Button
             variant="success"
-            onClick={() => {
-              console.log("Botón 'Sí' clicado");
-              agendarCita();
-            }}
+            onClick={agendarCita}
             style={buttonStyle}
             {...buttonHover}
           >
