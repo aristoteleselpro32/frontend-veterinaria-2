@@ -18,7 +18,7 @@ import {
   Spinner,
   Form,
 } from "react-bootstrap";
-import { FaBell, FaUserCircle, FaPhone, FaPhoneSlash } from "react-icons/fa";
+import { FaBell, FaUserCircle, FaPhone, FaPhoneSlash, FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, FaSyncAlt } from "react-icons/fa";
 import Cookies from "js-cookie";
 import { io } from "socket.io-client";
 
@@ -37,30 +37,43 @@ export default function VeterinarioDashboard() {
   const [showCallModal, setShowCallModal] = useState(false);
   const [waitingForOffer, setWaitingForOffer] = useState(false);
   const [showEndCallModal, setShowEndCallModal] = useState(false);
-  const [endCallForm, setEndCallForm] = useState({ precio: "", motivo: "emergencia" });
+  const [endCallForm, setEndCallForm] = useState({ precio: "50", motivo: "emergencia" });
+  const [errorModalShow, setErrorModalShow] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [cameras, setCameras] = useState([]);
+  const [selectedCameraId, setSelectedCameraId] = useState("");
+  const [loadingDevices, setLoadingDevices] = useState(false);
 
-  // Refs para WebRTC
+  // Refs para WebRTC y ringtone
   const socketRef = useRef(null);
   const pcRef = useRef(null);
   const localStreamRef = useRef(null);
   const remoteStreamRef = useRef(null);
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const ringtoneRef = useRef(null);
 
   // Configuración ICE mejorada
-const RTC_CONFIG = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    {
-      urls: [
-        "turn:54.90.130.188:3478",
-        "turn:54.90.130.188:3478?transport=tcp",
-      ],
-      username: "webrtcuser",
-      credential: "webrtcpass",
-    },
-  ],
-};
+  const RTC_CONFIG = {
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" },
+      { urls: "stun:stun2.l.google.com:19302" },
+      { urls: "stun:stun.relay.metered.ca:80" },
+      {
+        urls: ["turn:openrelay.metered.ca:80", "turn:openrelay.metered.ca:443"],
+        username: "openrelayproject",
+        credential: "openrelayproject",
+      },
+      {
+        urls: "turn:turn.relay.metered.ca:443",
+        username: "openrelayproject",
+        credential: "openrelayproject",
+      },
+    ],
+  };
 
   // Cargar usuario al montar
   useEffect(() => {
@@ -105,6 +118,10 @@ const RTC_CONFIG = {
       });
       setCallStatus("ringing");
       setShowCallModal(true);
+      // Reproducir ringtone
+      if (ringtoneRef.current) {
+        ringtoneRef.current.play().catch(err => console.error("Error al reproducir ringtone:", err));
+      }
     });
 
     socket.on("webrtc_offer", ({ from, sdp }) => {
@@ -121,7 +138,11 @@ const RTC_CONFIG = {
       if (pcRef.current && candidate && incomingCall?.from === from) {
         pcRef.current
           .addIceCandidate(new RTCIceCandidate(candidate))
-          .catch((err) => console.error("Error al agregar ICE candidate:", err));
+          .catch((err) => {
+            console.error("Error al agregar ICE candidate:", err);
+            setErrorMessage("Error en la conexión ICE. Intenta más tarde.");
+            setErrorModalShow(true);
+          });
       }
     });
 
@@ -129,6 +150,13 @@ const RTC_CONFIG = {
       console.log("📞 Llamada finalizada por el cliente");
       setShowEndCallModal(false);
       finalizarLlamada();
+    });
+
+    socket.on("disconnect", () => {
+      console.log("🔌 Socket desconectado");
+      finalizarLlamada();
+      setErrorMessage("Conexión perdida. Intenta reconectar.");
+      setErrorModalShow(true);
     });
 
     return () => {
@@ -173,20 +201,80 @@ const RTC_CONFIG = {
     return () => {
       if (localVideoRef.current) localVideoRef.current.srcObject = null;
       if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+      if (ringtoneRef.current) ringtoneRef.current.pause();
     };
   }, []);
 
-  // Manejar llamada WebRTC entrante
+  // Cargar cámaras disponibles (similar al user)
+  const askAndLoadCameras = async () => {
+    try {
+      setLoadingDevices(true);
+      const tmp = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }).catch(() => null);
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoInputs = devices.filter((d) => d.kind === "videoinput");
+      setCameras(videoInputs);
+      if (!selectedCameraId && videoInputs[0]) {
+        setSelectedCameraId(videoInputs[0].deviceId);
+      }
+      if (tmp) tmp.getTracks().forEach((t) => t.stop());
+    } catch (err) {
+      console.error("No se pudo obtener dispositivos de video:", err);
+      setCameras([]);
+    } finally {
+      setLoadingDevices(false);
+    }
+  };
+
+  // Función para cambiar cámara durante la llamada
+  const switchCamera = async (newCameraId) => {
+    if (!localStreamRef.current) return;
+    try {
+      const newConstraints = {
+        video: { deviceId: { exact: newCameraId } },
+      };
+      const newVideoTrack = await navigator.mediaDevices.getUserMedia(newConstraints).then(stream => stream.getVideoTracks()[0]);
+      const sender = pcRef.current.getSenders().find(s => s.track.kind === 'video');
+      if (sender) {
+        sender.replaceTrack(newVideoTrack);
+      }
+      // Actualizar stream local
+      localStreamRef.current.getVideoTracks()[0].stop();
+      localStreamRef.current.addTrack(newVideoTrack);
+      setSelectedCameraId(newCameraId);
+    } catch (err) {
+      console.error("Error al cambiar cámara:", err);
+      setErrorMessage("Error al cambiar la cámara. Intenta más tarde.");
+      setErrorModalShow(true);
+    }
+  };
+
+  // Función para silenciar/apagar audio/video
+  const toggleMute = (type) => {
+    if (!localStreamRef.current) return;
+    localStreamRef.current.getTracks().forEach(track => {
+      if (track.kind === type) {
+        track.enabled = !track.enabled;
+      }
+    });
+    if (type === 'audio') {
+      setIsMuted(!isMuted);
+    } else if (type === 'video') {
+      setIsVideoOff(!isVideoOff);
+    }
+  };
+
+  // Manejar llamada WebRTC entrante (agregar carga de cámaras)
   const handleIncomingWebRTCCall = async (from, offerSdp) => {
     try {
       setCallStatus("connecting");
+      await askAndLoadCameras(); // Cargar cámaras al aceptar
 
       const constraints = {
         audio: true,
         video: {
           width: { ideal: 1280 },
           height: { ideal: 720 },
-          facingMode: "user",
+          ...(selectedCameraId ? { deviceId: { exact: selectedCameraId } } : { facingMode: "user" }),
         },
       };
 
@@ -194,13 +282,17 @@ const RTC_CONFIG = {
         .getUserMedia(constraints)
         .catch((err) => {
           console.error("Error al acceder a medios:", err);
+          let msg = "Error desconocido. Intenta más tarde.";
           if (err.name === "NotAllowedError") {
-            throw new Error("Permisos de micrófono o cámara denegados. Concede los permisos.");
+            msg = "Permisos de micrófono o cámara denegados. Concede los permisos.";
           } else if (err.name === "NotFoundError") {
-            throw new Error("No se encontraron dispositivos de audio o video.");
+            msg = "No se encontraron dispositivos de audio o video.";
           } else {
-            throw new Error("No se pudo acceder a los medios: " + err.message);
+            msg = "No se pudo acceder a los medios: " + err.message;
           }
+          setErrorMessage(msg);
+          setErrorModalShow(true);
+          throw err;
         });
 
       localStreamRef.current = localStream;
@@ -249,6 +341,8 @@ const RTC_CONFIG = {
         console.log("ICE connection state:", pc.iceConnectionState);
         if (pc.iceConnectionState === "disconnected" || pc.iceConnectionState === "failed") {
           setCallStatus("error");
+          setErrorMessage("Conexión perdida durante la llamada. Intenta reconectar.");
+          setErrorModalShow(true);
           socketRef.current.emit("finalizar_llamada", {
             veterinarioId: user.id || user._id,
             usuarioId: from,
@@ -283,6 +377,8 @@ const RTC_CONFIG = {
     } catch (err) {
       console.error("❌ Error al aceptar llamada:", err);
       setCallStatus("error");
+      setErrorMessage("Error al aceptar la llamada. Por favor, intenta de nuevo.");
+      setErrorModalShow(true);
 
       if (socketRef.current && incomingCall?.from) {
         socketRef.current.emit("rechazar_llamada", {
@@ -313,6 +409,11 @@ const RTC_CONFIG = {
       setWaitingForOffer(true);
       console.log("Esperando oferta WebRTC...");
     }
+    // Detener ringtone
+    if (ringtoneRef.current) {
+      ringtoneRef.current.pause();
+      ringtoneRef.current.currentTime = 0;
+    }
   };
 
   // Rechazar llamada
@@ -328,6 +429,11 @@ const RTC_CONFIG = {
     setWaitingForOffer(false);
     finalizarLlamada();
     setShowCallModal(false);
+    // Detener ringtone
+    if (ringtoneRef.current) {
+      ringtoneRef.current.pause();
+      ringtoneRef.current.currentTime = 0;
+    }
   };
 
   // Mostrar modal para finalizar llamada
@@ -339,14 +445,16 @@ const RTC_CONFIG = {
   const confirmarFinalizarLlamada = () => {
     if (!incomingCall) return;
 
+    console.log('Finalizando llamada con:', callerInfo, endCallForm);
+
     socketRef.current.emit("finalizar_llamada", {
       veterinarioId: user.id || user._id,
       usuarioId: incomingCall.from,
       extra: {
         precio: parseFloat(endCallForm.precio) || 50,
         motivo: endCallForm.motivo || "emergencia",
-        cliente_nombre: callerInfo?.cliente_nombre,
-        cliente_telefono: callerInfo?.cliente_telefono,
+        cliente_nombre: callerInfo?.cliente_nombre || null,
+        cliente_telefono: callerInfo?.cliente_telefono || null,
       },
     });
 
@@ -392,6 +500,10 @@ const RTC_CONFIG = {
     setShowCallModal(false);
     setWaitingForOffer(false);
     setEndCallForm({ precio: "50", motivo: "emergencia" });
+    setIsMuted(false);
+    setIsVideoOff(false);
+    setCameras([]);
+    setSelectedCameraId("");
   };
 
   // Cerrar sesión
@@ -405,6 +517,12 @@ const RTC_CONFIG = {
 
   return (
     <Container fluid className="p-0">
+      {/* Audio para ringtone */}
+      <audio ref={ringtoneRef} loop>
+        <source src="https://www.soundjay.com/phone/telephone-ring-3.mp3" type="audio/mpeg" />
+        {/* Puedes cambiar este URL por otro personalizado editando el código */}
+      </audio>
+
       {/* Encabezado superior */}
       <div
         className="d-flex justify-content-between align-items-center text-light px-4 py-3"
@@ -429,35 +547,21 @@ const RTC_CONFIG = {
             </Dropdown.Menu>
           </Dropdown>
 
-          <Dropdown align="end">
-            <Dropdown.Toggle variant="dark" id="dropdown-perfil" className="border-0 p-0">
-              {user?.imagen ? (
-                <Image
-                  src={user.imagen}
-                  roundedCircle
-                  width={32}
-                  height={32}
-                  alt="Avatar"
-                  style={{ objectFit: "cover" }}
-                />
-              ) : (
-                <FaUserCircle size={26} className="text-light" />
-              )}
-            </Dropdown.Toggle>
-            <Dropdown.Menu className="p-3" style={{ minWidth: "300px", fontSize: "1rem" }}>
-              <Dropdown.Header className="pb-2">
-                <div>
-                  <strong>{user?.nombre || "Usuario"}</strong>
-                </div>
-                <small className="text-muted">{user?.rol || "Rol"}</small>
-              </Dropdown.Header>
-              <Dropdown.Divider />
-              <Dropdown.Item>Perfil</Dropdown.Item>
-              <Button variant="danger" className="d-block w-100 mt-2" onClick={logout}>
-                Salir
-              </Button>
-            </Dropdown.Menu>
-          </Dropdown>
+          <Button variant="dark" className="border-0 p-0" onClick={logout}>
+            {user?.imagen ? (
+              <Image
+                src={user.imagen}
+                roundedCircle
+                width={32}
+                height={32}
+                alt="Avatar"
+                style={{ objectFit: "cover" }}
+              />
+            ) : (
+              <FaUserCircle size={26} className="text-light" />
+            )}
+            <span className="ms-2 text-light">{user?.nombre || "Usuario"} - Salir</span>
+          </Button>
         </div>
       </div>
 
@@ -675,6 +779,26 @@ const RTC_CONFIG = {
                 objectFit: "cover",
               }}
             />
+            {/* Controles de llamada */}
+            <div style={{
+              position: "absolute",
+              bottom: "10px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              display: "flex",
+              gap: "20px",
+              zIndex: 20,
+            }}>
+              <Button variant={isMuted ? "danger" : "secondary"} onClick={() => toggleMute('audio')}>
+                {isMuted ? <FaMicrophoneSlash /> : <FaMicrophone />}
+              </Button>
+              <Button variant={isVideoOff ? "danger" : "secondary"} onClick={() => toggleMute('video')}>
+                {isVideoOff ? <FaVideoSlash /> : <FaVideo />}
+              </Button>
+              <Button variant="secondary" onClick={() => switchCamera(selectedCameraId === cameras[0]?.deviceId ? cameras[1]?.deviceId : cameras[0]?.deviceId)}>
+                <FaSyncAlt />
+              </Button>
+            </div>
           </div>
 
           <div
@@ -745,6 +869,25 @@ const RTC_CONFIG = {
           </div>
         </div>
       )}
+
+      {/* Modal para errores generales */}
+      <Modal
+        show={errorModalShow}
+        onHide={() => setErrorModalShow(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Error</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Alert variant="danger">{errorMessage}</Alert>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setErrorModalShow(false)}>
+            Cerrar
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 }
