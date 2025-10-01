@@ -21,17 +21,18 @@ import { es } from "date-fns/locale";
 import { io } from "socket.io-client";
 import AOS from "aos";
 import "aos/dist/aos.css";
+import { FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, FaSyncAlt } from "react-icons/fa";
 
 // ID para usuarios invitados en llamadas de emergencia
 const EMERGENCY_USER_ID = "750b4f1d-3912-4802-8df2-e6544ba860fd";
 
-// Configuración ICE para WebRTC
+// Configuración ICE mejorada
 const RTC_CONFIG = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
     {
       urls: [
-        "turn:50.17.103.219:3478",
+        "turn:50.17.103.219:3478",  // Nueva IP
         "turn:50.17.103.219:3478?transport=tcp",
       ],
       username: "webrtcuser",
@@ -40,18 +41,18 @@ const RTC_CONFIG = {
   ],
 };
 
-
-
-// Estilos CSS para animaciones y diseño responsivo
+// Estilos CSS para animaciones y diseño responsivo (mejorados)
 const styles = `
   @keyframes slide-up {
     from {
       transform: translateY(50px);
       opacity: 0;
+      scale: 0.95;
     }
     to {
       transform: translateY(0);
       opacity: 1;
+      scale: 1;
     }
   }
 
@@ -65,14 +66,19 @@ const styles = `
   }
 
   .service-card {
-    animation: slide-up 0.5s ease-out forwards;
-    animation-delay: calc(var(--order) * 0.2s);
+    animation: slide-up 0.6s ease-out forwards;
+    animation-delay: calc(var(--order) * 0.15s);
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     width: 100% !important;
     max-width: 18rem;
     margin: 10px auto;
+  }
+
+  .service-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
   }
 
   .carousel-container {
@@ -114,6 +120,14 @@ const styles = `
     padding: 0.5rem 0;
   }
 
+  .carousel-text {
+    z-index: 20; /* Aumentado para estar sobre botones si es necesario */
+  }
+
+  .carousel-buttons {
+    z-index: 15; /* Menor que texto para no sobreponerse */
+  }
+
   @media (max-width: 768px) {
     h1 {
       font-size: clamp(1.5rem, 6vw, 1.8rem) !important;
@@ -140,6 +154,9 @@ const styles = `
     }
     .dropdown-menu {
       min-width: 100% !important;
+    }
+    .carousel-buttons {
+      top: 70%; /* Ajustar posición en mobile para evitar sobreposición */
     }
   }
 
@@ -204,6 +221,10 @@ export default function Home() {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const [theme, setTheme] = useState("dark");
+  const [errorModalShow, setErrorModalShow] = useState(false); // Nuevo para pop-up de errores
+  const [errorMessage, setErrorMessage] = useState(""); // Mensaje de error
+  const [isMuted, setIsMuted] = useState(false); // Para silenciar audio
+  const [isVideoOff, setIsVideoOff] = useState(false); // Para apagar video
 
   // Inicializar AOS y detectar tema
   useEffect(() => {
@@ -394,8 +415,9 @@ export default function Home() {
       console.log("❌ Llamada rechazada:", payload);
       setCallStatus("rechazada");
       setQueuePosition(null);
-      setShowEmergencyModal(false);
-      finalizarLlamada(false);
+      setErrorMessage("La llamada fue rechazada por el veterinario. Intenta más tarde.");
+      setErrorModalShow(true);
+      // No cerrar modal inmediatamente
     });
 
     s.on("call_accepted", (payload) => {
@@ -427,6 +449,8 @@ export default function Home() {
     s.on("disconnect", () => {
       console.log("🔌 Socket desconectado");
       finalizarLlamada(false);
+      setErrorMessage("Conexión perdida. Intenta reconectar.");
+      setErrorModalShow(true);
     });
 
     return () => {
@@ -488,6 +512,44 @@ export default function Home() {
       setCameras([]);
     } finally {
       setLoadingDevices(false);
+    }
+  };
+
+  // Función para cambiar cámara durante la llamada
+  const switchCamera = async (newCameraId) => {
+    if (!localStreamRef.current) return;
+    try {
+      const newConstraints = {
+        video: { deviceId: { exact: newCameraId } },
+      };
+      const newVideoTrack = await navigator.mediaDevices.getUserMedia(newConstraints).then(stream => stream.getVideoTracks()[0]);
+      const sender = pcRef.current.getSenders().find(s => s.track.kind === 'video');
+      if (sender) {
+        sender.replaceTrack(newVideoTrack);
+      }
+      // Actualizar stream local
+      localStreamRef.current.getVideoTracks()[0].stop();
+      localStreamRef.current.addTrack(newVideoTrack);
+      setSelectedCameraId(newCameraId);
+    } catch (err) {
+      console.error("Error al cambiar cámara:", err);
+      setErrorMessage("Error al cambiar la cámara. Intenta más tarde.");
+      setErrorModalShow(true);
+    }
+  };
+
+  // Función para silenciar/apagar audio/video
+  const toggleMute = (type) => {
+    if (!localStreamRef.current) return;
+    localStreamRef.current.getTracks().forEach(track => {
+      if (track.kind === type) {
+        track.enabled = !track.enabled;
+      }
+    });
+    if (type === 'audio') {
+      setIsMuted(!isMuted);
+    } else if (type === 'video') {
+      setIsVideoOff(!isVideoOff);
     }
   };
 
@@ -661,136 +723,148 @@ export default function Home() {
   };
 
   // Iniciar videollamada
-// Iniciar videollamada
-const iniciarLlamada = async () => {
-  if (!socket) return alert("Socket no conectado");
-  if (!selectedVetForCall) return alert("Selecciona un veterinario para la llamada.");
-
-  if (!user) {
-    setGuestError("");
-    if (!guestName || !guestPhone) {
-      setShowGuestModal(true);
+  const iniciarLlamada = async () => {
+    if (!socket) {
+      setErrorMessage("No hay conexión al servidor. Intenta más tarde.");
+      setErrorModalShow(true);
       return;
     }
-  }
+    if (!selectedVetForCall) {
+      setErrorMessage("Selecciona un veterinario para la llamada.");
+      setErrorModalShow(true);
+      return;
+    }
 
-  try {
-    setCallStatus("conectando");
-    setQueuePosition(null);
-
-    const constraints = {
-      video: {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        ...(selectedCameraId ? { deviceId: { exact: selectedCameraId } } : { facingMode: "user" }),
-      },
-      audio: true,
-    };
-
-    const stream = await navigator.mediaDevices.getUserMedia(constraints).catch((err) => {
-      console.error("Error al acceder a medios:", err);
-      if (err.name === "NotAllowedError") {
-        throw new Error("Permisos de cámara o micrófono denegados. Por favor, concede los permisos.");
-      } else if (err.name === "NotFoundError") {
-        throw new Error("No se encontraron dispositivos de cámara o micrófono.");
-      } else {
-        throw new Error("No se pudo acceder a la cámara o micrófono: " + err.message);
+    if (!user) {
+      setGuestError("");
+      if (!guestName || !guestPhone) {
+        setShowGuestModal(true);
+        return;
       }
-    });
+    }
 
-    localStreamRef.current = stream;
+    try {
+      setCallStatus("conectando");
+      setQueuePosition(null);
 
-    const pc = new RTCPeerConnection(RTC_CONFIG);
-    pcRef.current = pc;
+      const constraints = {
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          ...(selectedCameraId ? { deviceId: { exact: selectedCameraId } } : { facingMode: "user" }),
+        },
+        audio: true,
+      };
 
-    stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      const stream = await navigator.mediaDevices.getUserMedia(constraints).catch((err) => {
+        console.error("Error al acceder a medios:", err);
+        let msg = "Error desconocido. Intenta más tarde.";
+        if (err.name === "NotAllowedError") {
+          msg = "Permisos de cámara o micrófono denegados. Por favor, concede los permisos.";
+        } else if (err.name === "NotFoundError") {
+          msg = "No se encontraron dispositivos de cámara o micrófono.";
+        } else {
+          msg = `No se pudo acceder a la cámara o micrófono: ${err.message}`;
+        }
+        setErrorMessage(msg);
+        setErrorModalShow(true);
+        throw err;
+      });
 
-    const remoteStream = new MediaStream();
-    remoteStreamRef.current = remoteStream;
+      localStreamRef.current = stream;
 
-    // Manejar tracks sin reasignar srcObject innecesariamente
-    pc.ontrack = (event) => {
-      if (event.streams && event.streams[0]) {
-        event.streams[0].getTracks().forEach((track) => {
-          if (!remoteStream.getTracks().some((t) => t.id === track.id)) {
-            remoteStream.addTrack(track);
-            console.log("Añadiendo track remoto:", track.kind);
-          }
-        });
-        // Asignar srcObject solo si no está asignado
-        if (remoteVideoRef.current && !remoteVideoRef.current.srcObject) {
-          remoteVideoRef.current.srcObject = remoteStream;
-          const playPromise = remoteVideoRef.current.play();
-          if (playPromise !== undefined) {
-            playPromise
-              .then(() => {
-                console.log("Reproducción remota iniciada correctamente");
-              })
-              .catch((error) => {
-                console.error("Error al reproducir video remoto:", error);
-                if (error.name === "AbortError") {
-                  setTimeout(() => {
-                    if (remoteVideoRef.current && remoteVideoRef.current.srcObject) {
-                      remoteVideoRef.current.play().catch((e) => console.error("Reintento fallido:", e));
-                    }
-                  }, 500);
-                }
-              });
+      const pc = new RTCPeerConnection(RTC_CONFIG);
+      pcRef.current = pc;
+
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
+      const remoteStream = new MediaStream();
+      remoteStreamRef.current = remoteStream;
+
+      // Manejar tracks sin reasignar srcObject innecesariamente
+      pc.ontrack = (event) => {
+        if (event.streams && event.streams[0]) {
+          event.streams[0].getTracks().forEach((track) => {
+            if (!remoteStream.getTracks().some((t) => t.id === track.id)) {
+              remoteStream.addTrack(track);
+              console.log("Añadiendo track remoto:", track.kind);
+            }
+          });
+          // Asignar srcObject solo si no está asignado
+          if (remoteVideoRef.current && !remoteVideoRef.current.srcObject) {
+            remoteVideoRef.current.srcObject = remoteStream;
+            const playPromise = remoteVideoRef.current.play();
+            if (playPromise !== undefined) {
+              playPromise
+                .then(() => {
+                  console.log("Reproducción remota iniciada correctamente");
+                })
+                .catch((error) => {
+                  console.error("Error al reproducir video remoto:", error);
+                  if (error.name === "AbortError") {
+                    setTimeout(() => {
+                      if (remoteVideoRef.current && remoteVideoRef.current.srcObject) {
+                        remoteVideoRef.current.play().catch((e) => console.error("Reintento fallido:", e));
+                      }
+                    }, 500);
+                  }
+                });
+            }
           }
         }
-      }
-    };
+      };
 
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        console.log("Enviando ICE candidate:", event.candidate);
-        socket.emit("webrtc_ice_candidate", {
-          to: selectedVetForCall,
-          from: user?.id || user?._id || user?.id_cliente || EMERGENCY_USER_ID,
-          candidate: event.candidate,
-        });
-      }
-    };
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          console.log("Enviando ICE candidate:", event.candidate);
+          socket.emit("webrtc_ice_candidate", {
+            to: selectedVetForCall,
+            from: user?.id || user?._id || user?.id_cliente || EMERGENCY_USER_ID,
+            candidate: event.candidate,
+          });
+        }
+      };
 
-    pc.oniceconnectionstatechange = () => {
-      console.log("ICE connection state:", pc.iceConnectionState);
-      if (pc.iceConnectionState === "disconnected" || pc.iceConnectionState === "failed") {
-        setCallStatus("error");
-        finalizarLlamada(false);
-      }
-    };
+      pc.oniceconnectionstatechange = () => {
+        console.log("ICE connection state:", pc.iceConnectionState);
+        if (pc.iceConnectionState === "disconnected" || pc.iceConnectionState === "failed") {
+          setCallStatus("error");
+          setErrorMessage("Conexión perdida durante la llamada. Intenta reconectar.");
+          setErrorModalShow(true);
+          finalizarLlamada(false);
+        }
+      };
 
-    const offer = await pc.createOffer({
-      offerToReceiveAudio: true,
-      offerToReceiveVideo: true,
-    });
-    await pc.setLocalDescription(offer);
+      const offer = await pc.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true,
+      });
+      await pc.setLocalDescription(offer);
 
-    socket.emit("iniciar_llamada", {
-      usuarioId: user?.id || user?._id || user?.id_cliente || EMERGENCY_USER_ID,
-      veterinarioId: selectedVetForCall,
-      motivo: "Emergencia",
-      extra: {
-        cliente_nombre: user ? user.nombre : guestName,
-        cliente_telefono: user ? user.telefono : guestPhone,
-      },
-    });
+      socket.emit("iniciar_llamada", {
+        usuarioId: user?.id || user?._id || user?.id_cliente || EMERGENCY_USER_ID,
+        veterinarioId: selectedVetForCall,
+        motivo: "Emergencia",
+        extra: {
+          cliente_nombre: user ? user.nombre : guestName,
+          cliente_telefono: user ? user.telefono : guestPhone,
+        },
+      });
 
-    socket.emit("webrtc_offer", {
-      to: selectedVetForCall,
-      from: user?.id || user?._id || user?.id_cliente || EMERGENCY_USER_ID,
-      sdp: pc.localDescription,
-    });
+      socket.emit("webrtc_offer", {
+        to: selectedVetForCall,
+        from: user?.id || user?._id || user?.id_cliente || EMERGENCY_USER_ID,
+        sdp: pc.localDescription,
+      });
 
-    setCallInProgress(true);
-    setCallStatus("esperando");
-  } catch (err) {
-    console.error("❌ Error al iniciar llamada:", err);
-    setCallStatus("error");
-    finalizarLlamada(false);
-    alert(`Error: ${err.message}`);
-  }
-};
+      setCallInProgress(true);
+      setCallStatus("esperando");
+    } catch (err) {
+      console.error("❌ Error al iniciar llamada:", err);
+      setCallStatus("error");
+      // Modal ya manejado en catch de getUserMedia
+    }
+  };
 
   // Finalizar llamada
   const finalizarLlamada = async (emitFinalize = true) => {
@@ -834,6 +908,8 @@ const iniciarLlamada = async () => {
     setShowGuestModal(false);
     setGuestName("");
     setGuestPhone("");
+    setIsMuted(false);
+    setIsVideoOff(false);
   };
 
   // Render
@@ -873,24 +949,13 @@ const iniciarLlamada = async () => {
                   Mascotas
                 </Button>
               </Link>
-              <NavDropdown
-                title={user.nombre || user.name || "Perfil"}
-                id="perfil-dropdown"
-                align="end"
-                style={{ color: "#e5e7eb" }}
-                data-bs-theme={theme}
+              <Button 
+                variant="outline-light" 
+                className="mx-2 btn-animated" 
+                onClick={logout}
               >
-                <NavDropdown.ItemText style={{ color: currentTheme.navbarText }}>
-                  <strong>{user.nombre || user.name || ""}</strong>
-                  <div style={{ fontSize: "0.9rem", color: currentTheme.navbarText }}>
-                    {user.correo || user.email}
-                  </div>
-                </NavDropdown.ItemText>
-                <NavDropdown.Divider />
-                <NavDropdown.Item onClick={logout} style={{ color: currentTheme.navbarText }}>
-                  Salir
-                </NavDropdown.Item>
-              </NavDropdown>
+                {user.nombre || user.name || "Perfil"} - Salir
+              </Button>
             </>
           )}
           <Button
@@ -984,15 +1049,16 @@ const iniciarLlamada = async () => {
           </div>
 
           <div
+            className="carousel-text"
             style={{
               position: "absolute",
-              top: "40%",
+              top: "30%",
               left: "50%",
               transform: "translate(-50%, -50%)",
               textAlign: "center",
               color: currentTheme.textColor,
               textShadow: `2px 2px 4px rgba(0,0,0,${theme === "dark" ? 0.7 : 0.3})`,
-              zIndex: 10,
+              zIndex: 20,
             }}
             data-aos="fade-up"
             data-aos-delay="200"
@@ -1003,13 +1069,14 @@ const iniciarLlamada = async () => {
           </div>
 
           <div
+            className="carousel-buttons"
             style={{
               position: "absolute",
-              top: "60%",
+              top: "70%",
               left: "50%",
               transform: "translate(-50%, -50%)",
               textAlign: "center",
-              zIndex: 10,
+              zIndex: 15,
               display: "flex",
               flexWrap: "wrap",
               gap: "0.5rem",
@@ -1495,7 +1562,7 @@ const iniciarLlamada = async () => {
 
               {callStatus === "rechazada" && (
                 <Alert variant="danger" className="mt-3">
-                  El veterinario ha rechazado la llamada.
+                  El veterinario no disponible o no conectado 
                 </Alert>
               )}
               {callStatus === "ocupado" && (
@@ -1595,6 +1662,18 @@ const iniciarLlamada = async () => {
                           : callStatus}
                   </span>
                 </div>
+                {/* Controles de llamada */}
+                <div className="position-absolute bottom-0 left-50 d-flex gap-3 p-2" style={{ transform: "translateX(-50%)", zIndex: 20 }}>
+                  <Button variant={isMuted ? "danger" : "secondary"} onClick={() => toggleMute('audio')}>
+                    {isMuted ? <FaMicrophoneSlash /> : <FaMicrophone />}
+                  </Button>
+                  <Button variant={isVideoOff ? "danger" : "secondary"} onClick={() => toggleMute('video')}>
+                    {isVideoOff ? <FaVideoSlash /> : <FaVideo />}
+                  </Button>
+                  <Button variant="secondary" onClick={() => switchCamera(selectedCameraId === cameras[0]?.deviceId ? cameras[1]?.deviceId : cameras[0]?.deviceId)}>
+                    <FaSyncAlt />
+                  </Button>
+                </div>
               </div>
               <div className="d-flex justify-content-center mt-3">
                 <Button
@@ -1689,6 +1768,26 @@ const iniciarLlamada = async () => {
             </div>
           </Form>
         </Modal.Body>
+      </Modal>
+
+      {/* Modal para errores generales */}
+      <Modal
+        show={errorModalShow}
+        onHide={() => setErrorModalShow(false)}
+        centered
+        style={{ fontFamily: "'Inter', sans-serif" }}
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Error</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Alert variant="danger">{errorMessage}</Alert>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setErrorModalShow(false)}>
+            Cerrar
+          </Button>
+        </Modal.Footer>
       </Modal>
     </>
   );
