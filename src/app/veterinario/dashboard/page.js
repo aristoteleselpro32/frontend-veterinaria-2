@@ -56,18 +56,14 @@ export default function VeterinarioDashboard() {
   const ringtoneRef = useRef(null);
 
   // Configuración ICE mejorada
-const RTC_CONFIG = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    {
-      urls: [
-        "turn:50.17.103.219:3478",  // Nueva IP
-        "turn:50.17.103.219:3478?transport=tcp",
-      ],
-      username: "webrtcuser",
-      credential: "webrtcpass",
-    },
-  ],
+iceServers: [
+  { urls: "stun:stun.l.google.com:19302" },
+  {
+    urls: ["turn:openrelay.metered.ca:80", "turn:openrelay.metered.ca:443?transport=tcp"],
+    username: "openrelayproject",
+    credential: "openrelayproject"
+  }
+],
 };
 
   
