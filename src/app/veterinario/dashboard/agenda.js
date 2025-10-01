@@ -1,4 +1,3 @@
-
 "use client";
 import { useState, useEffect } from "react";
 import {
@@ -60,29 +59,27 @@ export default function Agenda() {
     setCargando(true);
     setCargandoActualizacion(true);
 
-      const res = await fetch(`https://servicios-veterinarios.onrender.com/api/servicios-veterinarios/reservas/veterinario/${veterinarioId}`, {
-        headers: { Accept: "application/json" },
-      });
+    const res = await fetch(`https://servicios-veterinarios.onrender.com/api/servicios-veterinarios/reservas/veterinario/${veterinarioId}`, {
+      headers: { Accept: "application/json" },
+    });
 
-      
-      const data = await res.json();
-      const ids = data.map((r) => r.id);
-      if (new Set(ids).size !== ids.length) {
-        console.warn("⚠️ IDs duplicados detectados en las reservas:", ids);
-      }
-      const transformadas = data.map((r) => ({
-        id: r.id,
-        mascota: r.mascota?.nombre || "Sin nombre",
-        cliente: r.cliente?.nombre || "Sin nombre",
-        servicio: r.servicio?.nombre || "Sin servicio",
-        fecha: new Date(r.fecha),
-        estado: r.estado,
-      }));
-      setReservas(transformadas);
-    
-      setCargando(false);
-      setCargandoActualizacion(false);
-    
+    const data = await res.json();
+    const ids = data.map((r) => r.id);
+    if (new Set(ids).size !== ids.length) {
+      console.warn("⚠️ IDs duplicados detectados en las reservas:", ids);
+    }
+    const transformadas = data.map((r) => ({
+      id: r.id,
+      mascota: r.mascota?.nombre || "Sin nombre",
+      cliente: r.cliente?.nombre || "Sin nombre",
+      servicio: r.servicio?.nombre || "Sin servicio",
+      fecha: new Date(r.fecha),
+      estado: r.estado,
+    }));
+    setReservas(transformadas);
+
+    setCargando(false);
+    setCargandoActualizacion(false);
   };
 
   useEffect(() => {
@@ -274,69 +271,132 @@ export default function Agenda() {
   return (
     <div
       style={{
-        background: "linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%)",
-        borderRadius: "12px",
+        background: "#ffffff",
+        borderRadius: "16px",
         padding: "2rem",
-        boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)",
+        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.1), 0 0 32px rgba(0, 128, 255, 0.1)", // Sombra flotante con toque futurista (azul neon sutil)
+        transition: "box-shadow 0.3s ease-in-out",
       }}
+      onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 12px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.15)"}
+      onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 8px 24px rgba(0, 0, 0, 0.1), 0 0 32px rgba(0, 128, 255, 0.1)"}
     >
-      <style>
-        {`
-          .react-calendar {
-            background: #2c2c2c !important;
-            border: 1px solid #444 !important;
-            border-radius: 8px !important;
-            color: #e0e0e0 !important;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-          }
-          .react-calendar__navigation {
-            background: #2c2c2c !important;
-            color: #e0e0e0 !important;
-          }
-          .react-calendar__navigation__label,
-          .react-calendar__navigation__arrow {
-            background: #2c2c2c !important;
-            color: #e0e0e0 !important;
-            border: none !important;
-          }
-          .react-calendar__navigation__arrow:hover,
-          .react-calendar__navigation__label:hover {
-            background: #3a3a3a !important;
-            color: #ffffff !important;
-          }
-          .react-calendar__month-view__weekdays {
-            background: #2c2c2c !important;
-            color: #e0e0e0 !important;
-          }
-          .react-calendar__month-view__weekdays__weekday abbr {
-            color: #e0e0e0 !important;
-            text-decoration: none !important;
-          }
-          .react-calendar__month-view__days__day {
-            background: #2c2c2c !important;
-            color: #e0e0e0 !important;
-            border-radius: 4px !important;
-          }
-          .react-calendar__tile {
-            background: #2c2c2c !important;
-            color: #e0e0e0 !important;
-            border-radius: 4px !important;
-            transition: background 0.2s ease !important;
-          }
-          .react-calendar__tile:hover {
-            background: #3a3a3a !important;
-            color: #ffffff !important;
-          }
-          .react-calendar__tile--active,
-          .react-calendar__tile--now {
-            background: #007bff !important;
-            color: #ffffff !important;
-          }
-          .react-calendar__tile--neighboringMonth {
-            color: #a0a0a0 !important;
-          }
-        `}
-      </style>
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+        
+        body {
+          font-family: 'Roboto', sans-serif;
+        }
+        
+        .react-calendar {
+          background: #ffffff !important;
+          border: none !important;
+          border-radius: 12px !important;
+          color: #212529 !important;
+          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08), 0 0 24px rgba(0, 128, 255, 0.05) !important; // Efecto flotante futurista
+          transition: box-shadow 0.3s ease !important;
+        }
+        .react-calendar:hover {
+          box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12), 0 0 32px rgba(0, 128, 255, 0.1) !important;
+        }
+        .react-calendar__navigation {
+          background: linear-gradient(135deg, #f8f9fa, #ffffff) !important;
+          color: #212529 !important;
+          border-radius: 12px 12px 0 0 !important;
+        }
+        .react-calendar__navigation__label,
+        .react-calendar__navigation__arrow {
+          background: transparent !important;
+          color: #212529 !important;
+          border: none !important;
+          transition: color 0.2s, transform 0.2s !important;
+        }
+        .react-calendar__navigation__arrow:hover,
+        .react-calendar__navigation__label:hover {
+          color: #007bff !important;
+          transform: scale(1.1) !important;
+        }
+        .react-calendar__month-view__weekdays {
+          background: transparent !important;
+          color: #6c757d !important;
+        }
+        .react-calendar__month-view__weekdays__weekday abbr {
+          color: #6c757d !important;
+          text-decoration: none !important;
+        }
+        .react-calendar__tile {
+          background: transparent !important;
+          color: #212529 !important;
+          border-radius: 8px !important;
+          transition: background 0.2s, color 0.2s, box-shadow 0.2s !important;
+        }
+        .react-calendar__tile:hover {
+          background: #e9ecef !important;
+          color: #007bff !important;
+          box-shadow: inset 0 0 8px rgba(0, 123, 255, 0.2) !important; // Toque futurista
+        }
+        .react-calendar__tile--active,
+        .react-calendar__tile--now {
+          background: linear-gradient(135deg, #007bff, #00bfff) !important;
+          color: #ffffff !important;
+          box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3) !important;
+        }
+        .react-calendar__tile--neighboringMonth {
+          color: #adb5bd !important;
+        }
+        .table-container {
+          background: #ffffff;
+          border-radius: 12px;
+          padding: 1.5rem;
+          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08), 0 0 24px rgba(0, 128, 255, 0.05); // Efecto flotante futurista
+          transition: box-shadow 0.3s ease, transform 0.3s ease;
+        }
+        .table-container:hover {
+          box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12), 0 0 32px rgba(0, 128, 255, 0.1);
+          transform: translateY(-4px); // Efecto levitación
+        }
+        table {
+          border-collapse: separate !important;
+          border-spacing: 0 8px !important; // Espacio para relieve
+        }
+        thead th {
+          background: linear-gradient(135deg, #f8f9fa, #e9ecef) !important;
+          border: none !important;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+          padding: 1rem !important;
+          font-weight: 600 !important;
+          color: #495057 !important;
+        }
+        tbody tr {
+          background: #ffffff !important;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05) !important; // Relieve flotante
+          transition: box-shadow 0.2s, transform 0.2s !important;
+        }
+        tbody tr:hover {
+          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1), 0 0 16px rgba(0, 128, 255, 0.15) !important;
+          transform: translateY(-2px) !important; // Levitación al hover
+          background: #f1f3f5 !important;
+        }
+        td {
+          border: none !important;
+          padding: 0.8rem !important;
+          color: #212529 !important;
+        }
+        .modal-content {
+          border-radius: 16px !important;
+          box-shadow: 0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1) !important; // Modal flotante futurista
+          transition: transform 0.3s ease !important;
+        }
+        .modal-content:hover {
+          transform: scale(1.02) !important;
+        }
+        .btn {
+          transition: box-shadow 0.2s, transform 0.2s !important;
+        }
+        .btn:hover {
+          box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2) !important;
+          transform: translateY(-2px) !important;
+        }
+      `}</style>
 
       <div
         style={{
@@ -350,8 +410,7 @@ export default function Agenda() {
           style={{
             fontSize: "1.8rem",
             fontWeight: 600,
-            color: "#ffffff",
-            textShadow: "0 1px 3px rgba(0, 0, 0, 0.2)",
+            color: "#212529",
           }}
         >
           <i className="bi bi-calendar3 me-2"></i>Agenda Veterinaria
@@ -395,36 +454,31 @@ export default function Agenda() {
 
       <Row>
         <Col md={3}>
-          <Calendar
-            onChange={setFechaSeleccionada}
-            value={fechaSeleccionada}
-            className="border-0 rounded"
-            style={{
-              background: "#2c2c2c",
-              color: "#e0e0e0",
-              borderRadius: "8px",
-              boxShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
-              border: "1px solid #444",
-            }}
-            tileClassName={({ date, view }) => (view === "month" ? "rounded" : null)}
-            tileContent={({ date, view }) => {
-              if (view !== "month") return null;
-              const hasReserva = reservas.some(
-                (r) => r.fecha.toDateString() === date.toDateString()
-              );
-              return hasReserva ? (
-                <div
-                  style={{
-                    width: "8px",
-                    height: "8px",
-                    background: "#1d72d3ff",
-                    borderRadius: "50%",
-                    margin: "0 auto",
-                  }}
-                />
-              ) : null;
-            }}
-          />
+          <div className="calendar-container" style={{ marginBottom: "1.5rem" }}>
+            <Calendar
+              onChange={setFechaSeleccionada}
+              value={fechaSeleccionada}
+              className="border-0 rounded"
+              tileClassName={({ date, view }) => (view === "month" ? "rounded" : null)}
+              tileContent={({ date, view }) => {
+                if (view !== "month") return null;
+                const hasReserva = reservas.some(
+                  (r) => r.fecha.toDateString() === date.toDateString()
+                );
+                return hasReserva ? (
+                  <div
+                    style={{
+                      width: "8px",
+                      height: "8px",
+                      background: "#007bff",
+                      borderRadius: "50%",
+                      margin: "0 auto",
+                    }}
+                  />
+                ) : null;
+              }}
+            />
+          </div>
         </Col>
 
         <Col md={9}>
@@ -476,31 +530,21 @@ export default function Agenda() {
             </Button>
           </div>
 
-          <div
-            style={{
-              background: "#2c2c2c",
-              borderRadius: "8px",
-              padding: "1.5rem",
-              boxShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
-            }}
-          >
+          <div className="table-container">
             {cargando ? (
               <div style={{ textAlign: "center" }}>
-                <Spinner animation="border" variant="light" />
-                <p style={{ marginTop: "0.5rem", color: "#e0e0e0" }}>
+                <Spinner animation="border" variant="primary" />
+                <p style={{ marginTop: "0.5rem", color: "#212529" }}>
                   Cargando reservas...
                 </p>
               </div>
             ) : reservasFiltradas().length === 0 ? (
-              <p style={{ color: "#e0e0e0" }}>No hay reservas para esta vista.</p>
+              <p style={{ color: "#212529" }}>No hay reservas para esta vista.</p>
             ) : (
               <Table
                 striped
-                bordered
                 hover
-                variant="dark"
                 responsive
-                style={{ borderRadius: "8px", overflow: "hidden" }}
               >
                 <thead>
                   <tr>
@@ -531,25 +575,25 @@ export default function Agenda() {
                         transition: "background 0.2s ease",
                       }}
                       onMouseEnter={(e) =>
-                        (e.currentTarget.style.background = "#3a3a3a")
+                        (e.currentTarget.style.background = "#e9ecef")
                       }
                       onMouseLeave={(e) =>
                         (e.currentTarget.style.background = "transparent")
                       }
                     >
-                      <td style={{ padding: "0.8rem", color: "#e0e0e0" }}>
+                      <td style={{ padding: "0.8rem", color: "#212529" }}>
                         {r.mascota}
                       </td>
-                      <td style={{ padding: "0.8rem", color: "#e0e0e0" }}>
+                      <td style={{ padding: "0.8rem", color: "#212529" }}>
                         {r.cliente}
                       </td>
-                      <td style={{ padding: "0.8rem", color: "#e0e0e0" }}>
+                      <td style={{ padding: "0.8rem", color: "#212529" }}>
                         {r.servicio}
                       </td>
-                      <td style={{ padding: "0.8rem", color: "#e0e0e0" }}>
+                      <td style={{ padding: "0.8rem", color: "#212529" }}>
                         {format(r.fecha, "dd/MM/yyyy HH:mm", { locale: es })}
                       </td>
-                      <td style={{ padding: "0.8rem", color: "#e0e0e0" }}>
+                      <td style={{ padding: "0.8rem", color: "#212529" }}>
                         {r.estado}
                       </td>
                     </tr>
@@ -564,18 +608,17 @@ export default function Agenda() {
       <Modal
         show={mostrarModal}
         onHide={cerrarModal}
-        dialogClassName="modal-dark"
-        style={{ fontFamily: "'Inter', sans-serif" }}
+        style={{ fontFamily: "'Roboto', sans-serif" }}
       >
         <Modal.Header
           closeButton
-          style={{ background: "#2c2c2c", borderBottom: "1px solid #444", color: "#ffffff" }}
+          style={{ background: "#ffffff", borderBottom: "1px solid #dee2e6", color: "#212529" }}
         >
           <Modal.Title style={{ fontSize: "1.4rem", fontWeight: 600 }}>
             Crear Cita
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body style={{ background: "#2c2c2c", padding: "1.5rem" }}>
+        <Modal.Body style={{ background: "#f8f9fa", padding: "1.5rem" }}>
           {error && (
             <Alert variant="danger" style={{ borderRadius: "6px", fontSize: "0.9rem" }}>
               {error}
@@ -588,7 +631,7 @@ export default function Agenda() {
           )}
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: "#e0e0e0", fontWeight: 500 }}>
+              <Form.Label style={{ color: "#212529", fontWeight: 500 }}>
                 Cliente
               </Form.Label>
               <Form.Select
@@ -596,9 +639,9 @@ export default function Agenda() {
                 onChange={(e) => setForm({ ...form, cliente_id: e.target.value, mascota_id: "" })}
                 required
                 style={{
-                  background: "#333",
-                  border: "1px solid #555",
-                  color: "#e0e0e0",
+                  background: "#ffffff",
+                  border: "1px solid #ced4da",
+                  color: "#212529",
                   borderRadius: "6px",
                 }}
               >
@@ -612,7 +655,7 @@ export default function Agenda() {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: "#e0e0e0", fontWeight: 500 }}>
+              <Form.Label style={{ color: "#212529", fontWeight: 500 }}>
                 Mascota
               </Form.Label>
               <Form.Select
@@ -620,9 +663,9 @@ export default function Agenda() {
                 onChange={(e) => setForm({ ...form, mascota_id: e.target.value })}
                 required
                 style={{
-                  background: "#333",
-                  border: "1px solid #555",
-                  color: "#e0e0e0",
+                  background: "#ffffff",
+                  border: "1px solid #ced4da",
+                  color: "#212529",
                   borderRadius: "6px",
                 }}
               >
@@ -636,7 +679,7 @@ export default function Agenda() {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: "#e0e0e0", fontWeight: 500 }}>
+              <Form.Label style={{ color: "#212529", fontWeight: 500 }}>
                 Servicio
               </Form.Label>
               <Form.Select
@@ -644,9 +687,9 @@ export default function Agenda() {
                 onChange={(e) => setForm({ ...form, servicio_id: e.target.value })}
                 required
                 style={{
-                  background: "#333",
-                  border: "1px solid #555",
-                  color: "#e0e0e0",
+                  background: "#ffffff",
+                  border: "1px solid #ced4da",
+                  color: "#212529",
                   borderRadius: "6px",
                 }}
               >
@@ -660,7 +703,7 @@ export default function Agenda() {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: "#e0e0e0", fontWeight: 500 }}>
+              <Form.Label style={{ color: "#212529", fontWeight: 500 }}>
                 Fecha
               </Form.Label>
               <Form.Control
@@ -669,16 +712,16 @@ export default function Agenda() {
                 onChange={(e) => setForm({ ...form, fecha: e.target.value })}
                 required
                 style={{
-                  background: "#333",
-                  border: "1px solid #555",
-                  color: "#e0e0e0",
+                  background: "#ffffff",
+                  border: "1px solid #ced4da",
+                  color: "#212529",
                   borderRadius: "6px",
                 }}
               />
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: "#e0e0e0", fontWeight: 500 }}>
+              <Form.Label style={{ color: "#212529", fontWeight: 500 }}>
                 Hora
               </Form.Label>
               <Form.Control
@@ -687,9 +730,9 @@ export default function Agenda() {
                 onChange={(e) => setForm({ ...form, hora: e.target.value })}
                 required
                 style={{
-                  background: "#333",
-                  border: "1px solid #555",
-                  color: "#e0e0e0",
+                  background: "#ffffff",
+                  border: "1px solid #ced4da",
+                  color: "#212529",
                   borderRadius: "6px",
                 }}
               />
@@ -717,18 +760,17 @@ export default function Agenda() {
       <Modal
         show={modalEdicionVisible}
         onHide={cerrarModalEdicion}
-        dialogClassName="modal-dark"
-        style={{ fontFamily: "'Inter', sans-serif" }}
+        style={{ fontFamily: "'Roboto', sans-serif" }}
       >
         <Modal.Header
           closeButton
-          style={{ background: "#2c2c2c", borderBottom: "1px solid #444", color: "#ffffff" }}
+          style={{ background: "#ffffff", borderBottom: "1px solid #dee2e6", color: "#212529" }}
         >
           <Modal.Title style={{ fontSize: "1.4rem", fontWeight: 600 }}>
             Detalles de la Cita
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body style={{ background: "#2c2c2c", padding: "1.5rem" }}>
+        <Modal.Body style={{ background: "#f8f9fa", padding: "1.5rem" }}>
           {error && (
             <Alert variant="danger" style={{ borderRadius: "6px", fontSize: "0.9rem" }}>
               {error}
@@ -741,20 +783,20 @@ export default function Agenda() {
           )}
           {reservaSeleccionada && (
             <>
-              <p style={{ color: "#e0e0e0" }}>
+              <p style={{ color: "#212529" }}>
                 <strong>Mascota:</strong> {reservaSeleccionada.mascota}
               </p>
-              <p style={{ color: "#e0e0e0" }}>
+              <p style={{ color: "#212529" }}>
                 <strong>Cliente:</strong> {reservaSeleccionada.cliente}
               </p>
-              <p style={{ color: "#e0e0e0" }}>
+              <p style={{ color: "#212529" }}>
                 <strong>Servicio:</strong> {reservaSeleccionada.servicio}
               </p>
-              <p style={{ color: "#e0e0e0" }}>
+              <p style={{ color: "#212529" }}>
                 <strong>Fecha:</strong>{" "}
                 {format(reservaSeleccionada.fecha, "dd/MM/yyyy HH:mm", { locale: es })}
               </p>
-              <p style={{ color: "#e0e0e0" }}>
+              <p style={{ color: "#212529" }}>
                 <strong>Estado:</strong> {reservaSeleccionada.estado}
               </p>
               <div

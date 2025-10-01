@@ -1,4 +1,3 @@
-
 "use client";
 import { useState, useEffect } from "react";
 import { Form, Button, Row, Col, Modal, Alert } from "react-bootstrap";
@@ -373,33 +372,104 @@ export default function CirugiaForm({ mascota, propietario, data = {}, editar = 
     padding: "0.6rem 1.2rem",
     fontSize: "1rem",
     textTransform: "capitalize",
-    transition: "all 0.3s ease",
+    transition: "box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out",
     boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
   };
 
   const buttonHover = {
-    onMouseEnter: (e) => (e.target.style.transform = "translateY(-2px)"),
-    onMouseLeave: (e) => (e.target.style.transform = "translateY(0)"),
+    onMouseEnter: (e) => {
+      e.target.style.boxShadow = "0 4px 8px rgba(0, 123, 255, 0.2)";
+      e.target.style.transform = "translateY(-2px)";
+    },
+    onMouseLeave: (e) => {
+      e.target.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
+      e.target.style.transform = "translateY(0)";
+    },
   };
 
   return (
     <>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+        rel="stylesheet"
+      />
       <style jsx>{`
-        .form-control, .form-select {
-          background-color: #f8f9fa !important;
-          color: #212529 !important;
+        .custom-form {
+          font-family: 'Roboto', sans-serif;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1), 0 0 32px rgba(0, 128, 255, 0.1);
+          transition: box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out;
+          border-radius: 12px;
+          padding: 1.5rem;
+          background: #ffffff;
+        }
+        .custom-form:hover {
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.15);
+          transform: translateY(-4px);
+        }
+        .form-control, .form-select, textarea.form-control {
+          background: linear-gradient(135deg, #f8f9fa, #ffffff) !important;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05), inset 0 0 4px rgba(0, 128, 255, 0.05) !important;
+          transition: box-shadow 0.3s ease-in-out, border-color 0.3s ease-in-out !important;
           border-color: #ced4da !important;
+          color: #212529 !important;
+        }
+        .form-control:focus, .form-select:focus, textarea.form-control:focus {
+          box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2), inset 0 0 8px rgba(0, 128, 255, 0.1) !important;
+          border-color: #80bdff !important;
+        }
+        .form-control:hover, .form-select:hover, textarea.form-control:hover {
+          box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1), inset 0 0 6px rgba(0, 128, 255, 0.1) !important;
         }
         .form-label {
           color: #212529 !important;
           font-weight: 600 !important;
         }
-        .modal-content {
-          background-color: #ffffff !important;
+        .custom-row {
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05);
+          transition: box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out;
+          border-radius: 8px;
+          padding: 0.5rem;
+          margin-bottom: 1rem !important;
+          background: #f8f9fa;
+        }
+        .custom-row:hover {
+          box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1), 0 0 16px rgba(0, 128, 255, 0.1);
+          transform: translateY(-2px);
+        }
+        .custom-h6 {
+          background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+          padding: 0.5rem;
+          border-radius: 8px;
+          margin-bottom: 1rem !important;
+          transition: box-shadow 0.3s ease-in-out;
+        }
+        .custom-h6:hover {
+          box-shadow: 0 4px 8px rgba(0, 123, 255, 0.15);
+        }
+        .custom-modal .modal-content {
+          border-radius: 16px !important;
+          box-shadow: 0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1) !important;
+          transition: transform 0.3s ease-in-out !important;
+          background: linear-gradient(135deg, #ffffff, #f8f9fa) !important;
+          padding: 1rem !important;
           color: #212529 !important;
         }
+        .custom-modal .modal-content:hover {
+          transform: scale(1.02) !important;
+        }
+        .custom-modal .modal-header, .custom-modal .modal-footer {
+          border: none !important;
+        }
+        .custom-alert {
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05);
+          transition: box-shadow 0.3s ease-in-out;
+        }
+        .custom-alert:hover {
+          box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1), 0 0 16px rgba(0, 128, 255, 0.1);
+        }
         .btn-close {
-          color: #ffffffff !important;
+          color: #212529 !important;
           background-color: #ffffff !important;
           border: 1px solid #ced4da !important;
           border-radius: 50%;
@@ -409,28 +479,30 @@ export default function CirugiaForm({ mascota, propietario, data = {}, editar = 
           align-items: center;
           justify-content: center;
           font-size: 1.2rem;
+          transition: background-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
         }
-        .close-btn:hover {
+        .btn-close:hover {
           background-color: #e9ecef !important;
+          box-shadow: 0 2px 4px rgba(0, 123, 255, 0.1);
         }
       `}</style>
       <link
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
       />
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit} className="custom-form">
         {errors.success && (
-          <Alert variant="success" onClose={() => setErrors({})} dismissible className="shadow-sm">
+          <Alert variant="success" onClose={() => setErrors({})} dismissible className="shadow-sm custom-alert">
             {errors.success}
           </Alert>
         )}
         {errors.general && (
-          <Alert variant="danger" onClose={() => setErrors({})} dismissible className="shadow-sm">
+          <Alert variant="danger" onClose={() => setErrors({})} dismissible className="shadow-sm custom-alert">
             {errors.general}
           </Alert>
         )}
         {Object.keys(errors).length > 0 && !errors.success && !errors.general && (
-          <Alert variant="danger" onClose={() => setErrors({})} dismissible className="shadow-sm">
+          <Alert variant="danger" onClose={() => setErrors({})} dismissible className="shadow-sm custom-alert">
             <ul className="mb-0">
               {Object.values(errors).map((err, i) => (
                 <li key={i}>{err}</li>
@@ -576,9 +648,9 @@ export default function CirugiaForm({ mascota, propietario, data = {}, editar = 
         </Row>
 
         <hr />
-        <h6><i className="bi bi-capsule-pill me-2"></i>Medicamentos</h6>
+        <h6 className="custom-h6"><i className="bi bi-capsule-pill me-2"></i>Medicamentos</h6>
         {formData.medicamentos.map((med, i) => (
-          <Row key={i} className="mb-3">
+          <Row key={i} className="mb-3 custom-row">
             <Col md={3}>
               <Form.Control
                 list="medicamento-nombre-suggestions"
@@ -634,8 +706,8 @@ export default function CirugiaForm({ mascota, propietario, data = {}, editar = 
         </Button>
 
         <hr />
-        <h6><i className="bi bi-calendar-fill me-2"></i>Próximo Control</h6>
-        <Row className="mb-3">
+        <h6 className="custom-h6"><i className="bi bi-calendar-fill me-2"></i>Próximo Control</h6>
+        <Row className="mb-3 custom-row">
           <Col md={6}>
             <Form.Group>
               <Form.Label>Fecha</Form.Label>
@@ -700,6 +772,7 @@ export default function CirugiaForm({ mascota, propietario, data = {}, editar = 
         backdrop="static"
         keyboard={false}
         centered
+        className="custom-modal"
       >
         <Modal.Header className="border-0">
           <Modal.Title><i className="bi bi-calendar-check-fill me-2"></i>Confirmar cita</Modal.Title>

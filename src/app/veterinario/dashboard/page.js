@@ -56,25 +56,21 @@ export default function VeterinarioDashboard() {
   const ringtoneRef = useRef(null);
 
   // Configuración ICE mejorada
-  const RTC_CONFIG = {
-    iceServers: [
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun1.l.google.com:19302" },
-      { urls: "stun:stun2.l.google.com:19302" },
-      { urls: "stun:stun.relay.metered.ca:80" },
-      {
-        urls: ["turn:openrelay.metered.ca:80", "turn:openrelay.metered.ca:443"],
-        username: "openrelayproject",
-        credential: "openrelayproject",
-      },
-      {
-        urls: "turn:turn.relay.metered.ca:443",
-        username: "openrelayproject",
-        credential: "openrelayproject",
-      },
-    ],
-  };
+const RTC_CONFIG = {
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    {
+      urls: [
+        "turn:54.90.130.188:3478",
+        "turn:54.90.130.188:3478?transport=tcp",
+      ],
+      username: "webrtcuser",
+      credential: "webrtcpass",
+    },
+  ],
+};
 
+  
   // Cargar usuario al montar
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -516,7 +512,11 @@ export default function VeterinarioDashboard() {
   };
 
   return (
-    <Container fluid className="p-0">
+    <Container fluid className="p-0" style={{
+      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1), 0 0 32px rgba(0, 128, 255, 0.1)',
+      transition: 'box-shadow 0.3s ease-in-out',
+      backgroundColor: '#ffffff',
+    }}>
       {/* Audio para ringtone */}
       <audio ref={ringtoneRef} loop>
         <source src="https://www.soundjay.com/phone/telephone-ring-3.mp3" type="audio/mpeg" />
@@ -525,12 +525,16 @@ export default function VeterinarioDashboard() {
 
       {/* Encabezado superior */}
       <div
-        className="d-flex justify-content-between align-items-center text-light px-4 py-3"
-        style={{ backgroundColor: "#11151c" }}
+        className="d-flex justify-content-between align-items-center text-dark px-4 py-3"
+        style={{ 
+          backgroundColor: "#ffffff",
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05)',
+          transition: 'box-shadow 0.3s ease-in-out',
+        }}
       >
         <div className="d-flex align-items-center">
           <img
-            src="https://vidapetsoficial.com/site/wp-content/uploads/elementor/thumbs/club2-q6h1hktkxecyxunbgfhre8z13abtbboq6f1tjzbho4.png"
+            src="https://i.postimg.cc/13XLcjyv/imagen-2025-09-30-163600354.png"
             alt="Veterinaria Vidapets"
             style={{ height: "40px" }}
           />
@@ -538,8 +542,8 @@ export default function VeterinarioDashboard() {
 
         <div className="d-flex align-items-center gap-4">
           <Dropdown align="end">
-            <Dropdown.Toggle variant="dark" id="dropdown-notificaciones" className="border-0 p-0">
-              <FaBell size={24} className="text-light" />
+            <Dropdown.Toggle variant="light" id="dropdown-notificaciones" className="border-0 p-0">
+              <FaBell size={24} className="text-dark" />
             </Dropdown.Toggle>
             <Dropdown.Menu className="p-3" style={{ minWidth: "300px", fontSize: "1rem" }}>
               <Dropdown.Header>Notificaciones</Dropdown.Header>
@@ -547,7 +551,7 @@ export default function VeterinarioDashboard() {
             </Dropdown.Menu>
           </Dropdown>
 
-          <Button variant="dark" className="border-0 p-0" onClick={logout}>
+          <Button variant="light" className="border-0 p-0" onClick={logout}>
             {user?.imagen ? (
               <Image
                 src={user.imagen}
@@ -558,9 +562,9 @@ export default function VeterinarioDashboard() {
                 style={{ objectFit: "cover" }}
               />
             ) : (
-              <FaUserCircle size={26} className="text-light" />
+              <FaUserCircle size={26} className="text-dark" />
             )}
-            <span className="ms-2 text-light">{user?.nombre || "Usuario"} - Salir</span>
+            <span className="ms-2 text-dark">{user?.nombre || "Usuario"} - Salir</span>
           </Button>
         </div>
       </div>
@@ -568,13 +572,30 @@ export default function VeterinarioDashboard() {
       {/* Barra de navegación */}
       <Nav
         className="px-4 py-0 d-flex align-items-center gap-3"
-        style={{ backgroundColor: "#1f2937" }}
+        style={{ 
+          backgroundColor: "#f8f9fa",
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05)',
+          transition: 'box-shadow 0.3s ease-in-out',
+        }}
       >
         <Nav.Item>
           <Nav.Link
             onClick={() => setView("agenda")}
-            className="fw-semibold text-light px-5 py-3 rounded-1"
-            style={{ backgroundColor: "#2d3748", marginTop: "20px" }}
+            className="fw-semibold text-dark px-5 py-3 rounded-1"
+            style={{ 
+              backgroundColor: "#ffffff", 
+              marginTop: "20px",
+              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05)',
+              transition: 'box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.08), 0 0 24px rgba(0, 128, 255, 0.1)';
+              e.currentTarget.style.transform = 'translateY(-4px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
           >
             Agenda
           </Nav.Link>
@@ -582,8 +603,22 @@ export default function VeterinarioDashboard() {
         <Dropdown as={Nav.Item}>
           <Dropdown.Toggle
             as={Nav.Link}
-            className="fw-semibold text-light px-5 py-3 rounded-1"
-            style={{ backgroundColor: "#2d3748", cursor: "pointer", marginTop: "20px" }}
+            className="fw-semibold text-dark px-5 py-3 rounded-1"
+            style={{ 
+              backgroundColor: "#ffffff", 
+              cursor: "pointer", 
+              marginTop: "20px",
+              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05)',
+              transition: 'box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.08), 0 0 24px rgba(0, 128, 255, 0.1)';
+              e.currentTarget.style.transform = 'translateY(-4px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
           >
             Consultorio
           </Dropdown.Toggle>
@@ -594,8 +629,21 @@ export default function VeterinarioDashboard() {
         <Nav.Item>
           <Nav.Link
             onClick={() => setView("cartilla")}
-            className="fw-semibold text-light px-5 py-3 rounded-1"
-            style={{ backgroundColor: "#2d3748", marginTop: "20px" }}
+            className="fw-semibold text-dark px-5 py-3 rounded-1"
+            style={{ 
+              backgroundColor: "#ffffff", 
+              marginTop: "20px",
+              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05)',
+              transition: 'box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.08), 0 0 24px rgba(0, 128, 255, 0.1)';
+              e.currentTarget.style.transform = 'translateY(-4px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
           >
             Cartilla
           </Nav.Link>
@@ -603,8 +651,21 @@ export default function VeterinarioDashboard() {
         <Nav.Item>
           <Nav.Link
             onClick={() => setView("solicitudes")}
-            className="fw-semibold text-light px-5 py-3 rounded-1"
-            style={{ backgroundColor: "#2d3748", marginTop: "20px" }}
+            className="fw-semibold text-dark px-5 py-3 rounded-1"
+            style={{ 
+              backgroundColor: "#ffffff", 
+              marginTop: "20px",
+              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05)',
+              transition: 'box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.08), 0 0 24px rgba(0, 128, 255, 0.1)';
+              e.currentTarget.style.transform = 'translateY(-4px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
           >
             Solicitudes
           </Nav.Link>
@@ -612,8 +673,21 @@ export default function VeterinarioDashboard() {
         <Nav.Item>
           <Nav.Link
             onClick={() => setView("llamadasEmergencia")}
-            className="fw-semibold text-light px-5 py-3 rounded-1"
-            style={{ backgroundColor: "#2d3748", marginTop: "20px" }}
+            className="fw-semibold text-dark px-5 py-3 rounded-1"
+            style={{ 
+              backgroundColor: "#ffffff", 
+              marginTop: "20px",
+              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05)',
+              transition: 'box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.08), 0 0 24px rgba(0, 128, 255, 0.1)';
+              e.currentTarget.style.transform = 'translateY(-4px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
           >
             Llamadas de Emergencia
           </Nav.Link>
@@ -621,7 +695,13 @@ export default function VeterinarioDashboard() {
       </Nav>
 
       {/* Contenido principal */}
-      <div className="p-4" style={{ backgroundColor: "#111827", minHeight: "100vh" }}>
+      <div className="p-4" style={{ 
+        backgroundColor: "#ffffff", 
+        minHeight: "100vh",
+        boxShadow: '0 8px 16px rgba(0, 0, 0, 0.08), 0 0 24px rgba(0, 128, 255, 0.05)',
+        transition: 'box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out',
+        borderRadius: '8px',
+      }}>
         {view === "agenda" && <Agenda />}
         {view === "consultorio" && (
           <Consultorio
@@ -654,7 +734,11 @@ export default function VeterinarioDashboard() {
       </div>
 
       {/* Modal de llamada entrante */}
-      <Modal show={showCallModal && !callAccepted} onHide={rechazarLlamada} centered>
+      <Modal show={showCallModal && !callAccepted} onHide={rechazarLlamada} centered style={{
+        boxShadow: '0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1)',
+        borderRadius: '16px',
+        transition: 'transform 0.3s ease-in-out',
+      }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
         <Modal.Header closeButton>
           <Modal.Title>📞 Llamada entrante</Modal.Title>
         </Modal.Header>
@@ -692,7 +776,11 @@ export default function VeterinarioDashboard() {
       </Modal>
 
       {/* Modal para finalizar llamada con precio y motivo */}
-      <Modal show={showEndCallModal} onHide={() => setShowEndCallModal(false)} centered>
+      <Modal show={showEndCallModal} onHide={() => setShowEndCallModal(false)} centered style={{
+        boxShadow: '0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1)',
+        borderRadius: '16px',
+        transition: 'transform 0.3s ease-in-out',
+      }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
         <Modal.Header closeButton>
           <Modal.Title>Finalizar Llamada de Emergencia</Modal.Title>
         </Modal.Header>
@@ -738,7 +826,7 @@ export default function VeterinarioDashboard() {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.9)",
+            backgroundColor: "rgba(255,255,255,0.9)",
             zIndex: 1050,
             display: "flex",
             flexDirection: "column",
@@ -748,11 +836,12 @@ export default function VeterinarioDashboard() {
           <div
             style={{
               flex: 1,
-              backgroundColor: "#000",
+              backgroundColor: "#f8f9fa",
               borderRadius: "8px",
               overflow: "hidden",
               position: "relative",
               marginBottom: "20px",
+              boxShadow: '0 8px 16px rgba(0, 0, 0, 0.08), 0 0 24px rgba(0, 128, 255, 0.05)',
             }}
           >
             <h6
@@ -760,9 +849,9 @@ export default function VeterinarioDashboard() {
                 position: "absolute",
                 top: "10px",
                 left: "10px",
-                color: "white",
+                color: "black",
                 zIndex: 1,
-                backgroundColor: "rgba(0,0,0,0.5)",
+                backgroundColor: "rgba(255,255,255,0.5)",
                 padding: "5px 10px",
                 borderRadius: "4px",
               }}
@@ -808,11 +897,11 @@ export default function VeterinarioDashboard() {
               right: "20px",
               width: "150px",
               height: "200px",
-              backgroundColor: "#000",
+              backgroundColor: "#f8f9fa",
               borderRadius: "8px",
               overflow: "hidden",
-              border: "2px solid white",
-              boxShadow: "0 0 10px rgba(0,0,0,0.5)",
+              border: "2px solid #dee2e6",
+              boxShadow: "0 0 10px rgba(0,0,0,0.1)",
             }}
           >
             <h6
@@ -820,10 +909,10 @@ export default function VeterinarioDashboard() {
                 position: "absolute",
                 top: "5px",
                 left: "5px",
-                color: "white",
+                color: "black",
                 zIndex: 1,
                 fontSize: "12px",
-                backgroundColor: "rgba(0,0,0,0.5)",
+                backgroundColor: "rgba(255,255,255,0.5)",
                 padding: "2px 5px",
                 borderRadius: "4px",
               }}
@@ -875,6 +964,13 @@ export default function VeterinarioDashboard() {
         show={errorModalShow}
         onHide={() => setErrorModalShow(false)}
         centered
+        style={{
+          boxShadow: '0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1)',
+          borderRadius: '16px',
+          transition: 'transform 0.3s ease-in-out',
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
       >
         <Modal.Header closeButton>
           <Modal.Title>Error</Modal.Title>

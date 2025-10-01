@@ -1,4 +1,3 @@
-
 "use client";
 import { useEffect, useState } from "react";
 import { Button, Form, Row, Col, Modal, Table, Container, Alert, Spinner } from "react-bootstrap";
@@ -149,11 +148,20 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
   return (
     <Container
       style={{
-        background: "linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%)",
+        background: "linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)",
         borderRadius: "12px",
         padding: "2rem",
-        boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)",
+        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.1), 0 0 32px rgba(0, 128, 255, 0.1)",
         minHeight: "100vh",
+        transition: "box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = "0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1)";
+        e.currentTarget.style.transform = "translateY(-4px)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = "0 8px 24px rgba(0, 0, 0, 0.1), 0 0 32px rgba(0, 128, 255, 0.1)";
+        e.currentTarget.style.transform = "translateY(0)";
       }}
     >
       <div
@@ -168,9 +176,9 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
           style={{
             fontSize: "1.8rem",
             fontWeight: 600,
-            color: "#ffffff",
-            textShadow: "0 1px 3px rgba(0, 0, 0, 0.2)",
-            fontFamily: "'Inter', sans-serif",
+            color: "#000000",
+            textShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+            fontFamily: "Roboto, sans-serif",
           }}
         >
           <i className="bi bi-house-door me-2"></i>Consultorio
@@ -182,11 +190,17 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
             borderRadius: "8px",
             padding: "0.6rem 1.2rem",
             fontWeight: 500,
-            transition: "all 0.3s ease",
-            fontFamily: "'Inter', sans-serif",
+            transition: "box-shadow 0.2s, transform 0.2s",
+            fontFamily: "Roboto, sans-serif",
           }}
-          onMouseEnter={(e) => (e.target.style.transform = "translateY(-2px)")}
-          onMouseLeave={(e) => (e.target.style.transform = "translateY(0)")}
+          onMouseEnter={(e) => {
+            e.target.style.boxShadow = "0 4px 8px rgba(0, 123, 255, 0.2)";
+            e.target.style.transform = "translateY(-2px)";
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.boxShadow = "none";
+            e.target.style.transform = "translateY(0)";
+          }}
         >
           <i className="bi bi-plus-circle me-2"></i>Registrar Propietario
         </Button>
@@ -197,7 +211,7 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
           variant="danger"
           onClose={() => setError("")}
           dismissible
-          style={{ borderRadius: "6px", fontSize: "0.9rem", fontFamily: "'Inter', sans-serif" }}
+          style={{ borderRadius: "6px", fontSize: "0.9rem", fontFamily: "Roboto, sans-serif" }}
         >
           {error}
         </Alert>
@@ -207,7 +221,7 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
           variant="success"
           onClose={() => setConfirmacion("")}
           dismissible
-          style={{ borderRadius: "6px", fontSize: "0.9rem", fontFamily: "'Inter', sans-serif" }}
+          style={{ borderRadius: "6px", fontSize: "0.9rem", fontFamily: "Roboto, sans-serif" }}
         >
           {confirmacion}
         </Alert>
@@ -215,20 +229,29 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
 
       <div
         style={{
-          background: "#2c2c2c",
+          background: "#f8f9fa",
           borderRadius: "8px",
           padding: "1.5rem",
-          boxShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
-          border: "1px solid #444",
+          boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08), 0 0 24px rgba(0, 128, 255, 0.05)",
+          border: "1px solid #dee2e6",
+          transition: "box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.boxShadow = "0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1)";
+          e.currentTarget.style.transform = "translateY(-4px)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.boxShadow = "0 8px 16px rgba(0, 0, 0, 0.08), 0 0 24px rgba(0, 128, 255, 0.05)";
+          e.currentTarget.style.transform = "translateY(0)";
         }}
       >
         <h3
           style={{
             fontSize: "1.4rem",
             fontWeight: 500,
-            color: "#ffffff",
+            color: "#000000",
             marginBottom: "1rem",
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "Roboto, sans-serif",
           }}
         >
           Buscar Propietarios y Mascotas
@@ -236,19 +259,19 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
         <Row className="mb-3 align-items-end">
           <Col md={5}>
             <Form.Group>
-              <Form.Label style={{ color: "#e0e0e0", fontWeight: 500 }}>Buscar Propietario</Form.Label>
+              <Form.Label style={{ color: "#212529", fontWeight: 500 }}>Buscar Propietario</Form.Label>
               <Form.Control
-                className="bg-dark text-light"
+                className="bg-light text-dark"
                 placeholder="🔎 Ingrese nombre del propietario"
                 value={busquedaPropietario}
                 onChange={(e) => setBusquedaPropietario(e.target.value)}
                 style={{
-                  background: "#333",
-                  border: "1px solid #555",
-                  color: "#e0e0e0",
+                  background: "#ffffff",
+                  border: "1px solid #ced4da",
+                  color: "#212529",
                   borderRadius: "6px",
                   padding: "0.6rem",
-                  fontFamily: "'Inter', sans-serif",
+                  fontFamily: "Roboto, sans-serif",
                 }}
               />
             </Form.Group>
@@ -264,11 +287,17 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
                 borderRadius: "6px",
                 padding: "0.4rem 0.8rem",
                 fontWeight: 500,
-                transition: "all 0.3s ease",
-                fontFamily: "'Inter', sans-serif",
+                transition: "box-shadow 0.2s, transform 0.2s",
+                fontFamily: "Roboto, sans-serif",
               }}
-              onMouseEnter={(e) => (e.target.style.transform = "translateY(-2px)")}
-              onMouseLeave={(e) => (e.target.style.transform = "translateY(0)")}
+              onMouseEnter={(e) => {
+                e.target.style.boxShadow = "0 4px 8px rgba(0, 123, 255, 0.2)";
+                e.target.style.transform = "translateY(-2px)";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.boxShadow = "none";
+                e.target.style.transform = "translateY(0)";
+              }}
             >
               <i className={showMascotaFilter ? "bi bi-dash-circle" : "bi bi-plus-circle"}></i>{" "}
               {showMascotaFilter ? "Ocultar Filtro Mascota" : "Filtrar por Mascota"}
@@ -279,19 +308,19 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
           <Row className="mb-3">
             <Col md={5}>
               <Form.Group>
-                <Form.Label style={{ color: "#e0e0e0", fontWeight: 500 }}>Buscar Mascota</Form.Label>
+                <Form.Label style={{ color: "#212529", fontWeight: 500 }}>Buscar Mascota</Form.Label>
                 <Form.Control
-                  className="bg-dark text-light"
+                  className="bg-light text-dark"
                   placeholder="🔎 Ingrese nombre de la mascota"
                   value={busquedaMascota}
                   onChange={(e) => setBusquedaMascota(e.target.value)}
                   style={{
-                    background: "#333",
-                    border: "1px solid #555",
-                    color: "#e0e0e0",
+                    background: "#ffffff",
+                    border: "1px solid #ced4da",
+                    color: "#212529",
                     borderRadius: "6px",
                     padding: "0.6rem",
-                    fontFamily: "'Inter', sans-serif",
+                    fontFamily: "Roboto, sans-serif",
                   }}
                 />
               </Form.Group>
@@ -301,96 +330,152 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
 
         {loading ? (
           <div style={{ textAlign: "center", padding: "3rem 0" }}>
-            <Spinner animation="border" variant="light" />
-            <p style={{ marginTop: "0.5rem", color: "#e0e0e0", fontFamily: "'Inter', sans-serif" }}>
+            <Spinner animation="border" variant="primary" />
+            <p style={{ marginTop: "0.5rem", color: "#212529", fontFamily: "Roboto, sans-serif" }}>
               Cargando datos...
             </p>
           </div>
         ) : (
-          <Table
-            striped
-            bordered
-            hover
-            variant="dark"
-            responsive
-            style={{ borderRadius: "8px", overflow: "hidden", fontFamily: "'Inter', sans-serif" }}
-          >
-            <thead>
-              <tr>
-                <th style={{ padding: "1rem" }}><i className="bi bi-person me-2"></i>Nombre</th>
-                <th style={{ padding: "1rem" }}><i className="bi bi-envelope me-2"></i>Correo</th>
-                <th style={{ padding: "1rem" }}><i className="bi bi-telephone me-2"></i>Teléfono</th>
-                <th style={{ padding: "1rem" }}><i className="bi bi-paw me-2"></i>Mascotas</th>
-                <th style={{ padding: "1rem" }}><i className="bi bi-gear me-2"></i>Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {usuariosFiltrados.map((u) => (
-                <tr
-                  key={u.id}
-                  style={{
-                    cursor: "pointer",
-                    transition: "background 0.2s ease",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#3a3a3a")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                >
-                  <td style={{ padding: "0.8rem", color: "#e0e0e0" }}>{u.nombre}</td>
-                  <td style={{ padding: "0.8rem", color: "#e0e0e0" }}>{u.correo}</td>
-                  <td style={{ padding: "0.8rem", color: "#e0e0e0" }}>{u.telefono}</td>
-                  <td style={{ padding: "0.8rem", color: "#e0e0e0" }}>
-                    <ul className="mb-0">
-                      {mascotasFiltradas(u.id).map((m) => (
-                        <li
-                          key={m.id}
-                          style={{ cursor: "pointer", textDecoration: "underline" }}
-                          onClick={() => {
-                            setMascotaSeleccionada(m);
-                            setPropietarioSeleccionado(u);
-                            setView("perfilMascota");
-                          }}
-                        >
-                          {m.nombre} ({m.especie})
-                        </li>
-                      ))}
-                      {mascotasFiltradas(u.id).length === 0 && (
-                        <li style={{ color: "#999" }}>No hay mascotas registradas</li>
-                      )}
-                    </ul>
-                  </td>
-                  <td style={{ padding: "0.8rem" }}>
-                    <Button
-                      variant="outline-info"
-                      size="sm"
-                      onClick={() => {
-                        setUsuarioSeleccionado(u);
-                        setShowModalVer(true);
-                        setError("");
-                        setConfirmacion("");
-                      }}
-                      style={{
-                        borderRadius: "6px",
-                        padding: "0.4rem 0.8rem",
-                        fontWeight: 500,
-                        transition: "all 0.3s ease",
-                      }}
-                      onMouseEnter={(e) => (e.target.style.transform = "translateY(-2px)")}
-                      onMouseLeave={(e) => (e.target.style.transform = "translateY(0)")}
-                    >
-                      <i className="bi bi-eye me-2"></i>Ver
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-              {usuariosFiltrados.length === 0 && (
+          <div className="table-container" style={{
+            boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08), 0 0 24px rgba(0, 128, 255, 0.05)",
+            backgroundColor: "#ffffff",
+            borderRadius: "8px",
+            transition: "box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out",
+          }} onMouseEnter={(e) => {
+            e.currentTarget.style.boxShadow = "0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1)";
+            e.currentTarget.style.transform = "translateY(-4px)";
+          }} onMouseLeave={(e) => {
+            e.currentTarget.style.boxShadow = "0 8px 16px rgba(0, 0, 0, 0.08), 0 0 24px rgba(0, 128, 255, 0.05)";
+            e.currentTarget.style.transform = "translateY(0)";
+          }}>
+            <Table
+              responsive
+              style={{ 
+                borderCollapse: "separate", 
+                borderSpacing: "0 8px", 
+                fontFamily: "Roboto, sans-serif" 
+              }}
+            >
+              <thead>
                 <tr>
-                  <td colSpan="5" className="text-center text-muted">
-                    No se encontraron usuarios
-                  </td>
+                  <th style={{ 
+                    padding: "1rem", 
+                    background: "linear-gradient(135deg, #f8f9fa, #e9ecef)", 
+                    border: "none", 
+                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
+                    borderRadius: "8px 0 0 0"
+                  }}><i className="bi bi-person me-2"></i>Nombre</th>
+                  <th style={{ 
+                    padding: "1rem", 
+                    background: "linear-gradient(135deg, #f8f9fa, #e9ecef)", 
+                    border: "none", 
+                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)" 
+                  }}><i className="bi bi-envelope me-2"></i>Correo</th>
+                  <th style={{ 
+                    padding: "1rem", 
+                    background: "linear-gradient(135deg, #f8f9fa, #e9ecef)", 
+                    border: "none", 
+                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)" 
+                  }}><i className="bi bi-telephone me-2"></i>Teléfono</th>
+                  <th style={{ 
+                    padding: "1rem", 
+                    background: "linear-gradient(135deg, #f8f9fa, #e9ecef)", 
+                    border: "none", 
+                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)" 
+                  }}><i className="bi bi-paw me-2"></i>Mascotas</th>
+                  <th style={{ 
+                    padding: "1rem", 
+                    background: "linear-gradient(135deg, #f8f9fa, #e9ecef)", 
+                    border: "none", 
+                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
+                    borderRadius: "0 8px 0 0" 
+                  }}><i className="bi bi-gear me-2"></i>Acción</th>
                 </tr>
-              )}
-            </tbody>
-          </Table>
+              </thead>
+              <tbody>
+                {usuariosFiltrados.map((u) => (
+                  <tr
+                    key={u.id}
+                    style={{
+                      cursor: "pointer",
+                      boxShadow: "0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05)",
+                      backgroundColor: "#ffffff",
+                      transition: "box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out, background 0.3s ease-in-out",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.boxShadow = "0 8px 16px rgba(0, 0, 0, 0.08), 0 0 24px rgba(0, 128, 255, 0.1)";
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.backgroundColor = "#e9ecef";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05)";
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.backgroundColor = "#ffffff";
+                    }}
+                  >
+                    <td style={{ padding: "0.8rem", color: "#212529", border: "none" }}>{u.nombre}</td>
+                    <td style={{ padding: "0.8rem", color: "#212529", border: "none" }}>{u.correo}</td>
+                    <td style={{ padding: "0.8rem", color: "#212529", border: "none" }}>{u.telefono}</td>
+                    <td style={{ padding: "0.8rem", color: "#212529", border: "none" }}>
+                      <ul className="mb-0">
+                        {mascotasFiltradas(u.id).map((m) => (
+                          <li
+                            key={m.id}
+                            style={{ cursor: "pointer", textDecoration: "underline" }}
+                            onClick={() => {
+                              setMascotaSeleccionada(m);
+                              setPropietarioSeleccionado(u);
+                              setView("perfilMascota");
+                            }}
+                          >
+                            {m.nombre} ({m.especie})
+                          </li>
+                        ))}
+                        {mascotasFiltradas(u.id).length === 0 && (
+                          <li style={{ color: "#6c757d" }}>No hay mascotas registradas</li>
+                        )}
+                      </ul>
+                    </td>
+                    <td style={{ padding: "0.8rem", border: "none" }}>
+                      <Button
+                        variant="outline-info"
+                        size="sm"
+                        onClick={() => {
+                          setUsuarioSeleccionado(u);
+                          setShowModalVer(true);
+                          setError("");
+                          setConfirmacion("");
+                        }}
+                        style={{
+                          borderRadius: "6px",
+                          padding: "0.4rem 0.8rem",
+                          fontWeight: 500,
+                          transition: "box-shadow 0.2s, transform 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.boxShadow = "0 4px 8px rgba(0, 123, 255, 0.2)";
+                          e.target.style.transform = "translateY(-2px)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.boxShadow = "none";
+                          e.target.style.transform = "translateY(0)";
+                        }}
+                      >
+                        <i className="bi bi-eye me-2"></i>Ver
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+                {usuariosFiltrados.length === 0 && (
+                  <tr>
+                    <td colSpan="5" className="text-center text-muted">
+                      No se encontraron usuarios
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </Table>
+          </div>
         )}
       </div>
 
@@ -403,18 +488,25 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
           setFormNuevo({ nombre: "", correo: "", telefono: "", direccion: "" });
         }}
         centered
-        dialogClassName="modal-dark"
-        style={{ fontFamily: "'Inter', sans-serif" }}
+        dialogClassName="modal-light"
+        style={{ 
+          fontFamily: "Roboto, sans-serif",
+          borderRadius: "16px",
+          boxShadow: "0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1)",
+          transition: "transform 0.3s ease-in-out",
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.02)"}
+        onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
       >
         <Modal.Header
           closeButton
-          style={{ background: "#2c2c2c", borderBottom: "1px solid #444", color: "#ffffff" }}
+          style={{ background: "#f8f9fa", borderBottom: "1px solid #dee2e6", color: "#000000" }}
         >
           <Modal.Title style={{ fontSize: "1.4rem", fontWeight: 600 }}>
             Registrar Nuevo Propietario
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body style={{ background: "#2c2c2c", padding: "1.5rem" }}>
+        <Modal.Body style={{ background: "#f8f9fa", padding: "1.5rem" }}>
           {error && (
             <Alert
               variant="danger"
@@ -437,60 +529,60 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
           )}
           <Form>
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: "#e0e0e0", fontWeight: 500 }}>Nombre</Form.Label>
+              <Form.Label style={{ color: "#212529", fontWeight: 500 }}>Nombre</Form.Label>
               <Form.Control
                 value={formNuevo.nombre}
                 onChange={(e) => setFormNuevo({ ...formNuevo, nombre: e.target.value })}
                 required
                 style={{
-                  background: "#333",
-                  border: "1px solid #555",
-                  color: "#e0e0e0",
+                  background: "#ffffff",
+                  border: "1px solid #ced4da",
+                  color: "#212529",
                   borderRadius: "6px",
                   padding: "0.6rem",
                 }}
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: "#e0e0e0", fontWeight: 500 }}>Correo</Form.Label>
+              <Form.Label style={{ color: "#212529", fontWeight: 500 }}>Correo</Form.Label>
               <Form.Control
                 type="email"
                 value={formNuevo.correo}
                 onChange={(e) => setFormNuevo({ ...formNuevo, correo: e.target.value })}
                 required
                 style={{
-                  background: "#333",
-                  border: "1px solid #555",
-                  color: "#e0e0e0",
+                  background: "#ffffff",
+                  border: "1px solid #ced4da",
+                  color: "#212529",
                   borderRadius: "6px",
                   padding: "0.6rem",
                 }}
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: "#e0e0e0", fontWeight: 500 }}>Teléfono</Form.Label>
+              <Form.Label style={{ color: "#212529", fontWeight: 500 }}>Teléfono</Form.Label>
               <Form.Control
                 value={formNuevo.telefono}
                 onChange={(e) => setFormNuevo({ ...formNuevo, telefono: e.target.value })}
                 required
                 style={{
-                  background: "#333",
-                  border: "1px solid #555",
-                  color: "#e0e0e0",
+                  background: "#ffffff",
+                  border: "1px solid #ced4da",
+                  color: "#212529",
                   borderRadius: "6px",
                   padding: "0.6rem",
                 }}
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: "#e0e0e0", fontWeight: 500 }}>Dirección</Form.Label>
+              <Form.Label style={{ color: "#212529", fontWeight: 500 }}>Dirección</Form.Label>
               <Form.Control
                 value={formNuevo.direccion}
                 onChange={(e) => setFormNuevo({ ...formNuevo, direccion: e.target.value })}
                 style={{
-                  background: "#333",
-                  border: "1px solid #555",
-                  color: "#e0e0e0",
+                  background: "#ffffff",
+                  border: "1px solid #ced4da",
+                  color: "#212529",
                   borderRadius: "6px",
                   padding: "0.6rem",
                 }}
@@ -504,10 +596,16 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
                 borderRadius: "8px",
                 padding: "0.6rem",
                 fontWeight: 500,
-                transition: "all 0.3s ease",
+                transition: "box-shadow 0.2s, transform 0.2s",
               }}
-              onMouseEnter={(e) => (e.target.style.transform = "translateY(-2px)")}
-              onMouseLeave={(e) => (e.target.style.transform = "translateY(0)")}
+              onMouseEnter={(e) => {
+                e.target.style.boxShadow = "0 4px 8px rgba(0, 123, 255, 0.2)";
+                e.target.style.transform = "translateY(-2px)";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.boxShadow = "none";
+                e.target.style.transform = "translateY(0)";
+              }}
             >
               <i className="bi bi-save me-2"></i>Guardar
             </Button>
@@ -525,18 +623,25 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
         }}
         size="lg"
         centered
-        dialogClassName="modal-dark"
-        style={{ fontFamily: "'Inter', sans-serif" }}
+        dialogClassName="modal-light"
+        style={{ 
+          fontFamily: "Roboto, sans-serif",
+          borderRadius: "16px",
+          boxShadow: "0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1)",
+          transition: "transform 0.3s ease-in-out",
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.02)"}
+        onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
       >
         <Modal.Header
           closeButton
-          style={{ background: "#2c2c2c", borderBottom: "1px solid #444", color: "#ffffff" }}
+          style={{ background: "#f8f9fa", borderBottom: "1px solid #dee2e6", color: "#000000" }}
         >
           <Modal.Title style={{ fontSize: "1.4rem", fontWeight: 600 }}>
             Propietario: {usuarioSeleccionado?.nombre}
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body style={{ background: "#2c2c2c", padding: "1.5rem" }}>
+        <Modal.Body style={{ background: "#f8f9fa", padding: "1.5rem" }}>
           {error && (
             <Alert
               variant="danger"
@@ -557,25 +662,25 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
               {confirmacion}
             </Alert>
           )}
-          <p style={{ color: "#e0e0e0" }}><strong>Correo:</strong> {usuarioSeleccionado?.correo}</p>
-          <p style={{ color: "#e0e0e0" }}><strong>Teléfono:</strong> {usuarioSeleccionado?.telefono}</p>
-          <p style={{ color: "#e0e0e0" }}><strong>Dirección:</strong> {usuarioSeleccionado?.direccion || "N/D"}</p>
-          <hr style={{ borderColor: "#444" }} />
-          <h5 style={{ color: "#ffffff", fontWeight: 600 }}><i className="bi bi-paw me-2"></i>Registrar Mascota</h5>
+          <p style={{ color: "#212529" }}><strong>Correo:</strong> {usuarioSeleccionado?.correo}</p>
+          <p style={{ color: "#212529" }}><strong>Teléfono:</strong> {usuarioSeleccionado?.telefono}</p>
+          <p style={{ color: "#212529" }}><strong>Dirección:</strong> {usuarioSeleccionado?.direccion || "N/D"}</p>
+          <hr style={{ borderColor: "#dee2e6" }} />
+          <h5 style={{ color: "#000000", fontWeight: 600 }}><i className="bi bi-paw me-2"></i>Registrar Mascota</h5>
           <Form>
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label style={{ color: "#e0e0e0", fontWeight: 500 }}>Nombre</Form.Label>
+                  <Form.Label style={{ color: "#212529", fontWeight: 500 }}>Nombre</Form.Label>
                   <Form.Control
                     placeholder="Nombre"
                     value={formMascota.nombre}
                     onChange={(e) => setFormMascota({ ...formMascota, nombre: e.target.value })}
                     required
                     style={{
-                      background: "#333",
-                      border: "1px solid #555",
-                      color: "#e0e0e0",
+                      background: "#ffffff",
+                      border: "1px solid #ced4da",
+                      color: "#212529",
                       borderRadius: "6px",
                       padding: "0.6rem",
                     }}
@@ -584,16 +689,16 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label style={{ color: "#e0e0e0", fontWeight: 500 }}>Especie</Form.Label>
+                  <Form.Label style={{ color: "#212529", fontWeight: 500 }}>Especie</Form.Label>
                   <Form.Control
                     placeholder="Especie"
                     value={formMascota.especie}
                     onChange={(e) => setFormMascota({ ...formMascota, especie: e.target.value })}
                     required
                     style={{
-                      background: "#333",
-                      border: "1px solid #555",
-                      color: "#e0e0e0",
+                      background: "#ffffff",
+                      border: "1px solid #ced4da",
+                      color: "#212529",
                       borderRadius: "6px",
                       padding: "0.6rem",
                     }}
@@ -604,15 +709,15 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label style={{ color: "#e0e0e0", fontWeight: 500 }}>Raza</Form.Label>
+                  <Form.Label style={{ color: "#212529", fontWeight: 500 }}>Raza</Form.Label>
                   <Form.Control
                     placeholder="Raza"
                     value={formMascota.raza}
                     onChange={(e) => setFormMascota({ ...formMascota, raza: e.target.value })}
                     style={{
-                      background: "#333",
-                      border: "1px solid #555",
-                      color: "#e0e0e0",
+                      background: "#ffffff",
+                      border: "1px solid #ced4da",
+                      color: "#212529",
                       borderRadius: "6px",
                       padding: "0.6rem",
                     }}
@@ -621,16 +726,16 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label style={{ color: "#e0e0e0", fontWeight: 500 }}>Edad</Form.Label>
+                  <Form.Label style={{ color: "#212529", fontWeight: 500 }}>Edad</Form.Label>
                   <Form.Control
                     type="number"
                     placeholder="Edad"
                     value={formMascota.edad}
                     onChange={(e) => setFormMascota({ ...formMascota, edad: e.target.value })}
                     style={{
-                      background: "#333",
-                      border: "1px solid #555",
-                      color: "#e0e0e0",
+                      background: "#ffffff",
+                      border: "1px solid #ced4da",
+                      color: "#212529",
                       borderRadius: "6px",
                       padding: "0.6rem",
                     }}
@@ -641,15 +746,15 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label style={{ color: "#e0e0e0", fontWeight: 500 }}>Fecha de Nacimiento</Form.Label>
+                  <Form.Label style={{ color: "#212529", fontWeight: 500 }}>Fecha de Nacimiento</Form.Label>
                   <Form.Control
                     type="date"
                     value={formMascota.fecha_nacimiento}
                     onChange={(e) => setFormMascota({ ...formMascota, fecha_nacimiento: e.target.value })}
                     style={{
-                      background: "#333",
-                      border: "1px solid #555",
-                      color: "#e0e0e0",
+                      background: "#ffffff",
+                      border: "1px solid #ced4da",
+                      color: "#212529",
                       borderRadius: "6px",
                       padding: "0.6rem",
                     }}
@@ -658,15 +763,15 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label style={{ color: "#e0e0e0", fontWeight: 500 }}>Sexo</Form.Label>
+                  <Form.Label style={{ color: "#212529", fontWeight: 500 }}>Sexo</Form.Label>
                   <Form.Control
                     placeholder="Sexo"
                     value={formMascota.sexo}
                     onChange={(e) => setFormMascota({ ...formMascota, sexo: e.target.value })}
                     style={{
-                      background: "#333",
-                      border: "1px solid #555",
-                      color: "#e0e0e0",
+                      background: "#ffffff",
+                      border: "1px solid #ced4da",
+                      color: "#212529",
                       borderRadius: "6px",
                       padding: "0.6rem",
                     }}
@@ -677,15 +782,15 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label style={{ color: "#e0e0e0", fontWeight: 500 }}>Peso</Form.Label>
+                  <Form.Label style={{ color: "#212529", fontWeight: 500 }}>Peso</Form.Label>
                   <Form.Control
                     placeholder="Peso"
                     value={formMascota.peso}
                     onChange={(e) => setFormMascota({ ...formMascota, peso: e.target.value })}
                     style={{
-                      background: "#333",
-                      border: "1px solid #555",
-                      color: "#e0e0e0",
+                      background: "#ffffff",
+                      border: "1px solid #ced4da",
+                      color: "#212529",
                       borderRadius: "6px",
                       padding: "0.6rem",
                     }}
@@ -694,15 +799,15 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label style={{ color: "#e0e0e0", fontWeight: 500 }}>Color</Form.Label>
+                  <Form.Label style={{ color: "#212529", fontWeight: 500 }}>Color</Form.Label>
                   <Form.Control
                     placeholder="Color"
                     value={formMascota.color}
                     onChange={(e) => setFormMascota({ ...formMascota, color: e.target.value })}
                     style={{
-                      background: "#333",
-                      border: "1px solid #555",
-                      color: "#e0e0e0",
+                      background: "#ffffff",
+                      border: "1px solid #ced4da",
+                      color: "#212529",
                       borderRadius: "6px",
                       padding: "0.6rem",
                     }}
@@ -718,10 +823,16 @@ export default function Consultorio({ setView, setMascotaSeleccionada, setPropie
                 borderRadius: "8px",
                 padding: "0.6rem",
                 fontWeight: 500,
-                transition: "all 0.3s ease",
+                transition: "box-shadow 0.2s, transform 0.2s",
               }}
-              onMouseEnter={(e) => (e.target.style.transform = "translateY(-2px)")}
-              onMouseLeave={(e) => (e.target.style.transform = "translateY(0)")}
+              onMouseEnter={(e) => {
+                e.target.style.boxShadow = "0 4px 8px rgba(0, 123, 255, 0.2)";
+                e.target.style.transform = "translateY(-2px)";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.boxShadow = "none";
+                e.target.style.transform = "translateY(0)";
+              }}
             >
               <i className="bi bi-save me-2"></i>Agregar Mascota
             </Button>

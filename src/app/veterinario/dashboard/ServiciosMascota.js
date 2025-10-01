@@ -4,7 +4,6 @@ import { Container, Row, Col, ListGroup, Table, Button, Modal, Collapse, Alert, 
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable"; // <-- IMPORT CORRECTO
 
 import CirugiaForm from "./formularios/CirugiaForm";
 import ConsultaForm from "./formularios/ConsultaForm";
@@ -118,7 +117,7 @@ export default function ServiciosMascota({ setView }) {
     setOpenExamenFisico((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // 📄 FUNCIÓN PARA GENERAR PDF (usa autoTable(doc, ...))
+  // 📄 FUNCIÓN PARA GENERAR PDF (como lista/report)
   const handleImprimir = async (item) => {
     try {
       const doc = new jsPDF();
@@ -147,44 +146,48 @@ export default function ServiciosMascota({ setView }) {
       doc.setFontSize(12);
       doc.text("Datos de Propietario", 10, 50);
       doc.setFontSize(10);
-      doc.text(`Nombre: ${propietario.nombre}`, 10, 56);
-      doc.text(`Identificación: ${propietario.identificacion || "-"}`, 10, 61);
-      doc.text(`Teléfono: ${propietario.telefono}`, 10, 66);
-      doc.text(`Email: ${propietario.email || "-"}`, 10, 71);
+      doc.text(`Nombre: ${propietario.nombre || "N/D"}`, 10, 56);
+      doc.text(`Identificación: ${propietario.identificacion || "N/D"}`, 10, 61);
+      doc.text(`Teléfono: ${propietario.telefono || "N/D"}`, 10, 66);
+      doc.text(`Email: ${propietario.email || "N/D"}`, 10, 71);
 
       // Datos mascota
       doc.setFontSize(12);
       doc.text("Datos de Mascota", 10, 82);
       doc.setFontSize(10);
-      doc.text(`Nombre: ${mascota.nombre}`, 10, 88);
-      doc.text(`Especie: ${mascota.especie} | Raza: ${mascota.raza}`, 10, 93);
-      doc.text(`Género: ${mascota.genero} | Color: ${mascota.color}`, 10, 98);
-      doc.text(`Talla: ${mascota.talla} | Estado Reproductivo: ${mascota.estado_reproductivo}`, 10, 103);
-      doc.text(`Edad: ${mascota.edad}`, 10, 108);
+      doc.text(`Nombre: ${mascota.nombre || "N/D"}`, 10, 88);
+      doc.text(`Especie: ${mascota.especie || "N/D"} | Raza: ${mascota.raza || "N/D"}`, 10, 93);
+      doc.text(`Género: ${mascota.genero || "N/D"} | Color: ${mascota.color || "N/D"}`, 10, 98);
+      doc.text(`Talla: ${mascota.talla || "N/D"} | Estado Reproductivo: ${mascota.estado_reproductivo || "N/D"}`, 10, 103);
+      doc.text(`Edad: ${mascota.edad || "N/D"}`, 10, 108);
 
-      // Servicio
+      // Servicio como reporte (lista key-value)
       doc.setFontSize(12);
-      doc.text(`Servicio: ${servicioSeleccionado}`, 10, 120);
+      doc.text(`Reporte de Servicio: ${servicioSeleccionado}`, 10, 120);
+      doc.setFontSize(10);
+      let yPos = 126;
+      for (const [key, value] of Object.entries(item)) {
+        if (key === "_id" || key === "createdAt" || key === "updatedAt" || key === "mascota_id") continue; // Ignorar campos internos
 
-      // Tabla del servicio
-      const fields = serviceFields[servicioSeleccionado] || [];
-      const head = [fields.map(f => f.label)];
-      const body = [fields.map(f => {
-        if (f.key.includes("fecha")) {
-          return format(new Date(item[f.key] || item.createdAt), "dd/MM/yyyy", { locale: es });
+        let displayValue = value;
+        if (typeof value === "object" && value !== null) {
+          // Manejar objetos como examen_fisico
+          doc.text(`${key.charAt(0).toUpperCase() + key.slice(1)}:`, 10, yPos);
+          yPos += 5;
+          for (const [subKey, subValue] of Object.entries(value)) {
+            doc.text(`  - ${subKey.charAt(0).toUpperCase() + subKey.slice(1)}: ${subValue || "N/D"}`, 10, yPos);
+            yPos += 5;
+          }
+        } else {
+          if (key.includes("fecha")) {
+            displayValue = format(new Date(value || new Date()), "dd/MM/yyyy", { locale: es });
+          } else if (Array.isArray(value) && key === "medicamentos") {
+            displayValue = value.map(m => m.nombre).join(", ") || "N/D";
+          }
+          doc.text(`${key.charAt(0).toUpperCase() + key.slice(1)}: ${displayValue || "N/D"}`, 10, yPos);
+          yPos += 5;
         }
-        if (f.key === "medicamentos") {
-          return item[f.key]?.map(m => m.nombre).join(", ") || "-";
-        }
-        return item[f.key] || "-";
-      })];
-
-      // <- USAR autoTable(doc, opciones) en lugar de doc.autoTable(...)
-      autoTable(doc, {
-        startY: 130,
-        head,
-        body,
-      });
+      }
 
       // Footer
       doc.setFontSize(8);
@@ -195,19 +198,6 @@ export default function ServiciosMascota({ setView }) {
       console.error("Error generando PDF:", err);
       setAlertMsg({ type: "danger", text: "❌ Error al generar PDF: " + (err.message || err) });
     }
-  };
-
-  const buttonStyle = {
-    borderRadius: "6px",
-    padding: "0.5rem 1rem",
-    fontSize: "0.9rem",
-    textTransform: "capitalize",
-    transition: "all 0.3s ease",
-  };
-
-  const buttonHover = {
-    onMouseEnter: (e) => (e.target.style.transform = "translateY(-2px)"),
-    onMouseLeave: (e) => (e.target.style.transform = "translateY(0)"),
   };
 
   const renderFormulario = (modo, data = {}) => {
@@ -286,151 +276,280 @@ export default function ServiciosMascota({ setView }) {
     const hasExamenFisico = ["consultas", "seguimientos"].includes(servicioSeleccionado);
 
     return (
-      <Table striped bordered hover variant="dark" responsive className="mb-0" style={{ borderRadius: "8px", overflow: "hidden" }}>
-        <thead>
-          <tr>
-            {fields.map((field, i) => (
-              <th key={i} className="text-center">
-                <i className={`bi bi-${field.key === "fecha" ? "calendar-event" : "clipboard-check"} me-2`}></i>
-                {field.label}
-              </th>
-            ))}
-            {hasExamenFisico && (
-              <th className="text-center">
-                <i className="bi bi-heart-pulse-fill me-2"></i>Examen Físico
-              </th>
-            )}
-            <th className="text-center">
-              <i className="bi bi-gear-fill me-2"></i>Acciones
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading ? (
+      <div className="table-container" style={{
+        boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08), 0 0 24px rgba(0, 128, 255, 0.05)",
+        backgroundColor: "#ffffff",
+        borderRadius: "8px",
+        transition: "box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out",
+      }} onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = "0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1)";
+        e.currentTarget.style.transform = "translateY(-4px)";
+      }} onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = "0 8px 16px rgba(0, 0, 0, 0.08), 0 0 24px rgba(0, 128, 255, 0.05)";
+        e.currentTarget.style.transform = "translateY(0)";
+      }}>
+        <Table
+          responsive
+          style={{ 
+            borderCollapse: "separate", 
+            borderSpacing: "0 8px", 
+            fontFamily: "Roboto, sans-serif" 
+          }}
+        >
+          <thead>
             <tr>
-              <td colSpan={fields.length + (hasExamenFisico ? 2 : 1)} className="text-center">
-                <Spinner animation="border" variant="light" />
-              </td>
+              {fields.map((field, i) => (
+                <th key={i} style={{ 
+                  padding: "1rem", 
+                  background: "linear-gradient(135deg, #f8f9fa, #e9ecef)", 
+                  border: "none", 
+                  boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
+                  textAlign: "center"
+                }}>
+                  <i className={`bi bi-${field.key === "fecha" ? "calendar-event" : "clipboard-check"} me-2`}></i>
+                  {field.label}
+                </th>
+              ))}
+              {hasExamenFisico && (
+                <th style={{ 
+                  padding: "1rem", 
+                  background: "linear-gradient(135deg, #f8f9fa, #e9ecef)", 
+                  border: "none", 
+                  boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
+                  textAlign: "center"
+                }}>
+                  <i className="bi bi-heart-pulse-fill me-2"></i>Examen Físico
+                </th>
+              )}
+              <th style={{ 
+                padding: "1rem", 
+                background: "linear-gradient(135deg, #f8f9fa, #e9ecef)", 
+                border: "none", 
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
+                textAlign: "center",
+                borderRadius: "0 8px 0 0" 
+              }}>
+                <i className="bi bi-gear-fill me-2"></i>Acciones
+              </th>
             </tr>
-          ) : data.length === 0 ? (
-            <tr>
-              <td colSpan={fields.length + (hasExamenFisico ? 2 : 1)} className="text-center text-muted">
-                Sin registros
-              </td>
-            </tr>
-          ) : (
-            data.map((item, idx) => (
-              <>
-                <tr
-                  key={idx}
-                  style={{ cursor: "pointer", transition: "background 0.2s ease" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#3a3a3a")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                >
-                  {fields.map((field, j) => (
-                    <td key={j} className="text-center">
-                      {field.key.includes("fecha")
-                        ? format(new Date(item[field.key] || item.createdAt), "dd/MM/yyyy", { locale: es })
-                        : field.key === "medicamentos"
-                        ? item[field.key]?.map(m => m.nombre).join(", ") || "-"
-                        : item[field.key] || "-"}
-                    </td>
-                  ))}
-                  {hasExamenFisico && (
-                    <td className="text-center">
-                      {item.examen_fisico && Object.values(item.examen_fisico).some(val => val) && (
-                        <Button
-                          variant="info"
-                          size="sm"
-                          onClick={() => toggleExamenFisico(item._id || item.id)}
-                          style={buttonStyle}
-                          {...buttonHover}
-                        >
-                          <i className="bi bi-eye-fill me-1"></i> Ver Examen
-                        </Button>
-                      )}
-                    </td>
-                  )}
-                  <td className="text-center">
-                    <Button
-                      variant="info"
-                      size="sm"
-                      onClick={() => handleImprimir(item)}
-                      style={buttonStyle}
-                      {...buttonHover}
-                    >
-                      <i className="bi bi-printer-fill me-1"></i>
-                    </Button>{" "}
-                    <Button
-                      variant="warning"
-                      size="sm"
-                      onClick={() => {
-                        setServicioActual(item);
-                        setModalEditar(true);
-                      }}
-                      style={buttonStyle}
-                      {...buttonHover}
-                    >
-                      <i className="bi bi-pencil-fill me-1"></i>
-                    </Button>{" "}
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => handleEliminar(item._id || item.id)}
-                      style={buttonStyle}
-                      {...buttonHover}
-                    >
-                      <i className="bi bi-trash-fill me-1"></i>
-                    </Button>
-                  </td>
-                </tr>
-                {hasExamenFisico && item.examen_fisico && (
-                  <tr>
-                    <td colSpan={fields.length + 2}>
-                      <Collapse in={openExamenFisico[item._id || item.id]}>
-                        <div>
-                          <Table striped bordered hover variant="dark" className="mt-2 mb-0">
-                            <thead>
-                              <tr>
-                                {[
-                                  { key: "temperatura", label: "Temperatura" },
-                                  { key: "peso", label: "Peso" },
-                                  { key: "frecuencia_cardiaca", label: "Frec. Cardiaca" },
-                                  { key: "frecuencia_respiratoria", label: "Frec. Respiratoria" },
-                                  { key: "mucosas", label: "Mucosas" },
-                                  { key: "observaciones", label: "Observaciones" },
-                                ].map((field, k) => (
-                                  <th key={k} className="text-center">{field.label}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              <tr>
-                                {[
-                                  "temperatura",
-                                  "peso",
-                                  "frecuencia_cardiaca",
-                                  "frecuencia_respiratoria",
-                                  "mucosas",
-                                  "observaciones",
-                                ].map((key, k) => (
-                                  <td key={k} className="text-center">
-                                    {item.examen_fisico[key] ? `${item.examen_fisico[key]} ${key === "temperatura" ? item.examen_fisico.unidad_temperatura : key === "peso" ? item.examen_fisico.unidad_peso : ""}` : "-"}
-                                  </td>
-                                ))}
-                              </tr>
-                            </tbody>
-                          </Table>
-                        </div>
-                      </Collapse>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={fields.length + (hasExamenFisico ? 2 : 1)} className="text-center">
+                  <Spinner animation="border" variant="primary" />
+                </td>
+              </tr>
+            ) : data.length === 0 ? (
+              <tr>
+                <td colSpan={fields.length + (hasExamenFisico ? 2 : 1)} className="text-center text-muted">
+                  Sin registros
+                </td>
+              </tr>
+            ) : (
+              data.map((item, idx) => (
+                <>
+                  <tr
+                    key={idx}
+                    style={{
+                      boxShadow: "0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05)",
+                      backgroundColor: "#ffffff",
+                      transition: "box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out, background 0.3s ease-in-out",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.boxShadow = "0 8px 16px rgba(0, 0, 0, 0.08), 0 0 24px rgba(0, 128, 255, 0.1)";
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.backgroundColor = "#e9ecef";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05)";
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.backgroundColor = "#ffffff";
+                    }}
+                  >
+                    {fields.map((field, j) => (
+                      <td key={j} style={{ padding: "0.8rem", color: "#212529", border: "none", textAlign: "center" }}>
+                        {field.key.includes("fecha")
+                          ? format(new Date(item[field.key] || item.createdAt), "dd/MM/yyyy", { locale: es })
+                          : field.key === "medicamentos"
+                          ? item[field.key]?.map(m => m.nombre).join(", ") || "-"
+                          : item[field.key] || "-"}
+                      </td>
+                    ))}
+                    {hasExamenFisico && (
+                      <td style={{ padding: "0.8rem", color: "#212529", border: "none", textAlign: "center" }}>
+                        {item.examen_fisico && Object.values(item.examen_fisico).some(val => val) && (
+                          <Button
+                            variant="info"
+                            size="sm"
+                            onClick={() => toggleExamenFisico(item._id || item.id)}
+                            style={{
+                              transition: "box-shadow 0.2s, transform 0.2s",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.boxShadow = "0 4px 8px rgba(0, 123, 255, 0.2)";
+                              e.target.style.transform = "translateY(-2px)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.boxShadow = "none";
+                              e.target.style.transform = "translateY(0)";
+                            }}
+                          >
+                            <i className="bi bi-eye-fill me-1"></i> Ver Examen
+                          </Button>
+                        )}
+                      </td>
+                    )}
+                    <td style={{ padding: "0.8rem", border: "none", textAlign: "center" }}>
+                      <Button
+                        variant="info"
+                        size="sm"
+                        onClick={() => handleImprimir(item)}
+                        style={{
+                          transition: "box-shadow 0.2s, transform 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.boxShadow = "0 4px 8px rgba(0, 123, 255, 0.2)";
+                          e.target.style.transform = "translateY(-2px)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.boxShadow = "none";
+                          e.target.style.transform = "translateY(0)";
+                        }}
+                      >
+                        <i className="bi bi-printer-fill me-1"></i>
+                      </Button>{" "}
+                      <Button
+                        variant="warning"
+                        size="sm"
+                        onClick={() => {
+                          setServicioActual(item);
+                          setModalEditar(true);
+                        }}
+                        style={{
+                          transition: "box-shadow 0.2s, transform 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.boxShadow = "0 4px 8px rgba(0, 123, 255, 0.2)";
+                          e.target.style.transform = "translateY(-2px)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.boxShadow = "none";
+                          e.target.style.transform = "translateY(0)";
+                        }}
+                      >
+                        <i className="bi bi-pencil-fill me-1"></i>
+                      </Button>{" "}
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleEliminar(item._id || item.id)}
+                        style={{
+                          transition: "box-shadow 0.2s, transform 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.boxShadow = "0 4px 8px rgba(0, 123, 255, 0.2)";
+                          e.target.style.transform = "translateY(-2px)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.boxShadow = "none";
+                          e.target.style.transform = "translateY(0)";
+                        }}
+                      >
+                        <i className="bi bi-trash-fill me-1"></i>
+                      </Button>
                     </td>
                   </tr>
-                )}
-              </>
-            ))
-          )}
-        </tbody>
-      </Table>
+                  {hasExamenFisico && item.examen_fisico && (
+                    <tr>
+                      <td colSpan={fields.length + 2} style={{ border: "none" }}>
+                        <Collapse in={openExamenFisico[item._id || item.id]}>
+                          <div>
+                            <div className="table-container" style={{
+                              boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08), 0 0 24px rgba(0, 128, 255, 0.05)",
+                              backgroundColor: "#ffffff",
+                              borderRadius: "8px",
+                              transition: "box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out",
+                            }} onMouseEnter={(e) => {
+                              e.currentTarget.style.boxShadow = "0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1)";
+                              e.currentTarget.style.transform = "translateY(-4px)";
+                            }} onMouseLeave={(e) => {
+                              e.currentTarget.style.boxShadow = "0 8px 16px rgba(0, 0, 0, 0.08), 0 0 24px rgba(0, 128, 255, 0.05)";
+                              e.currentTarget.style.transform = "translateY(0)";
+                            }}>
+                              <Table
+                                responsive
+                                style={{ 
+                                  borderCollapse: "separate", 
+                                  borderSpacing: "0 8px", 
+                                  fontFamily: "Roboto, sans-serif" 
+                                }}
+                              >
+                                <thead>
+                                  <tr>
+                                    {[
+                                      { key: "temperatura", label: "Temperatura" },
+                                      { key: "peso", label: "Peso" },
+                                      { key: "frecuencia_cardiaca", label: "Frec. Cardiaca" },
+                                      { key: "frecuencia_respiratoria", label: "Frec. Respiratoria" },
+                                      { key: "mucosas", label: "Mucosas" },
+                                      { key: "observaciones", label: "Observaciones" },
+                                    ].map((field, k) => (
+                                      <th key={k} style={{ 
+                                        padding: "1rem", 
+                                        background: "linear-gradient(135deg, #f8f9fa, #e9ecef)", 
+                                        border: "none", 
+                                        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
+                                        textAlign: "center"
+                                      }}>{field.label}</th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  <tr
+                                    style={{
+                                      boxShadow: "0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05)",
+                                      backgroundColor: "#ffffff",
+                                      transition: "box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out, background 0.3s ease-in-out",
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.boxShadow = "0 8px 16px rgba(0, 0, 0, 0.08), 0 0 24px rgba(0, 128, 255, 0.1)";
+                                      e.currentTarget.style.transform = "translateY(-2px)";
+                                      e.currentTarget.style.backgroundColor = "#e9ecef";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 128, 255, 0.05)";
+                                      e.currentTarget.style.transform = "translateY(0)";
+                                      e.currentTarget.style.backgroundColor = "#ffffff";
+                                    }}
+                                  >
+                                    {[
+                                      "temperatura",
+                                      "peso",
+                                      "frecuencia_cardiaca",
+                                      "frecuencia_respiratoria",
+                                      "mucosas",
+                                      "observaciones",
+                                    ].map((key, k) => (
+                                      <td key={k} style={{ padding: "0.8rem", color: "#212529", border: "none", textAlign: "center" }}>
+                                        {item.examen_fisico[key] ? `${item.examen_fisico[key]} ${key === "temperatura" ? item.examen_fisico.unidad_temperatura : key === "peso" ? item.examen_fisico.unidad_peso : ""}` : "-"}
+                                      </td>
+                                    ))}
+                                  </tr>
+                                </tbody>
+                              </Table>
+                            </div>
+                          </div>
+                        </Collapse>
+                      </td>
+                    </tr>
+                  )}
+                </>
+              ))
+            )}
+          </tbody>
+        </Table>
+      </div>
     );
   };
 
@@ -440,7 +559,17 @@ export default function ServiciosMascota({ setView }) {
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
       />
-      <Container className="text-light mt-5 p-4 bg-dark rounded shadow-lg">
+      <Container className="text-dark mt-5 p-4 bg-light rounded shadow-lg" style={{
+        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.1), 0 0 32px rgba(0, 128, 255, 0.1)",
+        transition: "box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out",
+        fontFamily: "Roboto, sans-serif",
+      }} onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = "0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1)";
+        e.currentTarget.style.transform = "translateY(-4px)";
+      }} onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = "0 8px 24px rgba(0, 0, 0, 0.1), 0 0 32px rgba(0, 128, 255, 0.1)";
+        e.currentTarget.style.transform = "translateY(0)";
+      }}>
         {alertMsg && (
           <Alert
             variant={alertMsg.type}
@@ -455,8 +584,17 @@ export default function ServiciosMascota({ setView }) {
           <Button
             variant="secondary"
             onClick={() => setView("perfilMascota")}
-            style={buttonStyle}
-            {...buttonHover}
+            style={{
+              transition: "box-shadow 0.2s, transform 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.boxShadow = "0 4px 8px rgba(0, 123, 255, 0.2)";
+              e.target.style.transform = "translateY(-2px)";
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.boxShadow = "none";
+              e.target.style.transform = "translateY(0)";
+            }}
           >
             <i className="bi bi-arrow-left me-1"></i> Volver
           </Button>
@@ -466,7 +604,7 @@ export default function ServiciosMascota({ setView }) {
         </div>
         <Row>
           <Col md={3}>
-            <ListGroup className="bg-dark border-secondary shadow-sm rounded">
+            <ListGroup className="bg-light border-secondary shadow-sm rounded">
               {[
                 { key: "consultas", label: "🩺 Consultas", icon: "bi-heart-pulse-fill" },
                 { key: "labo", label: "🧪 Laboratorio", icon: "bi-flask" },
@@ -480,7 +618,7 @@ export default function ServiciosMascota({ setView }) {
                   action
                   active={servicioSeleccionado === serv.key}
                   onClick={() => setServicioSeleccionado(serv.key)}
-                  className={`text-light ${servicioSeleccionado === serv.key ? "bg-primary" : "bg-dark"} border-secondary`}
+                  className={`text-dark ${servicioSeleccionado === serv.key ? "bg-primary" : "bg-light"} border-secondary`}
                   style={{ cursor: "pointer", transition: "background 0.2s ease" }}
                 >
                   <i className={`bi ${serv.icon} me-2`}></i>
@@ -498,8 +636,17 @@ export default function ServiciosMascota({ setView }) {
               <Button
                 variant="success"
                 onClick={() => setModalCrear(true)}
-                style={buttonStyle}
-                {...buttonHover}
+                style={{
+                  transition: "box-shadow 0.2s, transform 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.boxShadow = "0 4px 8px rgba(0, 123, 255, 0.2)";
+                  e.target.style.transform = "translateY(-2px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.boxShadow = "none";
+                  e.target.style.transform = "translateY(0)";
+                }}
               >
                 <i className="bi bi-plus-circle-fill me-1"></i> Nuevo
               </Button>
@@ -508,24 +655,34 @@ export default function ServiciosMascota({ setView }) {
           </Col>
         </Row>
 
-        <Modal show={modalCrear} onHide={() => setModalCrear(false)} size="xl" centered className="fade">
-          <Modal.Header closeButton className="bg-dark text-white border-secondary">
+        <Modal show={modalCrear} onHide={() => setModalCrear(false)} size="xl" centered className="fade" style={{
+          borderRadius: "16px",
+          boxShadow: "0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1)",
+          transition: "transform 0.3s ease-in-out",
+          fontFamily: "Roboto, sans-serif",
+        }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.02)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>
+          <Modal.Header closeButton className="bg-light text-dark border-secondary">
             <Modal.Title>
               <i className="bi bi-plus-circle-fill me-2"></i> Crear
             </Modal.Title>
           </Modal.Header>
-          <Modal.Body className="bg-dark text-white p-4" style={{ maxHeight: "70vh", overflowY: "auto" }}>
+          <Modal.Body className="bg-light text-dark p-4" style={{ maxHeight: "70vh", overflowY: "auto" }}>
             {renderFormulario("crear")}
           </Modal.Body>
         </Modal>
 
-        <Modal show={modalEditar} onHide={() => setModalEditar(false)} size="xl" centered className="fade">
-          <Modal.Header closeButton className="bg-dark text-white border-secondary">
+        <Modal show={modalEditar} onHide={() => setModalEditar(false)} size="xl" centered className="fade" style={{
+          borderRadius: "16px",
+          boxShadow: "0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1)",
+          transition: "transform 0.3s ease-in-out",
+          fontFamily: "Roboto, sans-serif",
+        }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.02)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>
+          <Modal.Header closeButton className="bg-light text-dark border-secondary">
             <Modal.Title>
               <i className="bi bi-pencil-fill me-2"></i> Editar
             </Modal.Title>
           </Modal.Header>
-          <Modal.Body className="bg-dark text-white p-4" style={{ maxHeight: "70vh", overflowY: "auto" }}>
+          <Modal.Body className="bg-light text-dark p-4" style={{ maxHeight: "70vh", overflowY: "auto" }}>
             {renderFormulario("editar", servicioActual)}
           </Modal.Body>
         </Modal>
