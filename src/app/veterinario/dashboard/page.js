@@ -61,8 +61,8 @@ const RTC_CONFIG = {
     { urls: "stun:stun.l.google.com:19302" },
     {
       urls: [
-        "turn:54.90.130.188:3478",
-        "turn:54.90.130.188:3478?transport=tcp",
+        "turn:50.17.103.219:3478",  // Nueva IP
+        "turn:50.17.103.219:3478?transport=tcp",
       ],
       username: "webrtcuser",
       credential: "webrtcpass",
