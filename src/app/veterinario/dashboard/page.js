@@ -58,14 +58,18 @@ export default function VeterinarioDashboard() {
   // Configuración ICE mejorada
 const RTC_CONFIG = {
   iceServers: [
-  { urls: "stun:stun.l.google.com:19302" },
-  {
-    urls: ["turn:openrelay.metered.ca:80", "turn:openrelay.metered.ca:443?transport=tcp"],
-    username: "openrelayproject",
-    credential: "openrelayproject"
-  }
-]
+    { urls: "stun:stun.l.google.com:19302" },
+    {
+      urls: [
+        "turn:50.17.103.219:3478",  // Nueva IP
+        "turn:50.17.103.219:3478?transport=tcp",
+      ],
+      username: "webrtcuser",
+      credential: "webrtcpass",
+    },
+  ],
 };
+
   
   // Cargar usuario al montar
   useEffect(() => {
@@ -264,8 +268,8 @@ const RTC_CONFIG = {
       const constraints = {
         audio: true,
         video: {
-          width: { ideal: 640},
-          height: { ideal: 480 },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
           ...(selectedCameraId ? { deviceId: { exact: selectedCameraId } } : { facingMode: "user" }),
         },
       };
