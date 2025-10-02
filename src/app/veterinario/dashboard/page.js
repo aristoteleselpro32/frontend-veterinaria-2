@@ -38,6 +38,7 @@ export default function VeterinarioDashboard() {
   const [waitingForOffer, setWaitingForOffer] = useState(false);
   const [showEndCallModal, setShowEndCallModal] = useState(false);
   const [endCallForm, setEndCallForm] = useState({ precio: "50", motivo: "emergencia" });
+  const [errorModalShow, setErrorModalShow] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
@@ -54,9 +55,9 @@ export default function VeterinarioDashboard() {
   const remoteVideoRef = useRef(null);
   const ringtoneRef = useRef(null);
 
+  // Configuración ICE mejorada
 const RTC_CONFIG = {
   iceServers: [
-    
     {
       urls: [
         "turn:50.17.103.219:3478",  // Nueva IP
@@ -135,6 +136,7 @@ const RTC_CONFIG = {
           .catch((err) => {
             console.error("Error al agregar ICE candidate:", err);
             setErrorMessage("Error en la conexión ICE. Intenta más tarde.");
+            setErrorModalShow(true);
           });
       }
     });
@@ -149,6 +151,7 @@ const RTC_CONFIG = {
       console.log("🔌 Socket desconectado");
       finalizarLlamada();
       setErrorMessage("Conexión perdida. Intenta reconectar.");
+      setErrorModalShow(true);
     });
 
     return () => {
@@ -236,6 +239,7 @@ const RTC_CONFIG = {
     } catch (err) {
       console.error("Error al cambiar cámara:", err);
       setErrorMessage("Error al cambiar la cámara. Intenta más tarde.");
+      setErrorModalShow(true);
     }
   };
 
@@ -282,6 +286,7 @@ const RTC_CONFIG = {
             msg = "No se pudo acceder a los medios: " + err.message;
           }
           setErrorMessage(msg);
+          setErrorModalShow(true);
           throw err;
         });
 
@@ -332,6 +337,7 @@ const RTC_CONFIG = {
         if (pc.iceConnectionState === "disconnected" || pc.iceConnectionState === "failed") {
           setCallStatus("error");
           setErrorMessage("Conexión perdida durante la llamada. Intenta reconectar.");
+          setErrorModalShow(true);
           socketRef.current.emit("finalizar_llamada", {
             veterinarioId: user.id || user._id,
             usuarioId: from,
@@ -367,6 +373,7 @@ const RTC_CONFIG = {
       console.error("❌ Error al aceptar llamada:", err);
       setCallStatus("error");
       setErrorMessage("Error al aceptar la llamada. Por favor, intenta de nuevo.");
+      setErrorModalShow(true);
 
       if (socketRef.current && incomingCall?.from) {
         socketRef.current.emit("rechazar_llamada", {
@@ -408,13 +415,11 @@ const RTC_CONFIG = {
   const rechazarLlamada = () => {
     if (!incomingCall) return;
 
-    if (socketRef.current) {
-      socketRef.current.emit("rechazar_llamada", {
-        veterinarioId: user.id || user._id,
-        usuarioId: incomingCall.from,
-        motivo: "El veterinario no está disponible",
-      });
-    }
+    socketRef.current.emit("rechazar_llamada", {
+      veterinarioId: user.id || user._id,
+      usuarioId: incomingCall.from,
+      motivo: "El veterinario no está disponible",
+    });
 
     setWaitingForOffer(false);
     finalizarLlamada();
@@ -494,7 +499,6 @@ const RTC_CONFIG = {
     setIsVideoOff(false);
     setCameras([]);
     setSelectedCameraId("");
-    setErrorMessage("");
   };
 
   // Cerrar sesión
@@ -697,11 +701,6 @@ const RTC_CONFIG = {
         transition: 'box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out',
         borderRadius: '8px',
       }}>
-        {errorMessage && (
-          <Alert variant="danger" onClose={() => setErrorMessage("")} dismissible>
-            {errorMessage}
-          </Alert>
-        )}
         {view === "agenda" && <Agenda />}
         {view === "consultorio" && (
           <Consultorio
@@ -771,6 +770,48 @@ const RTC_CONFIG = {
                 <FaPhone className="me-2" /> Aceptar
               </>
             )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modal para finalizar llamada con precio y motivo */}
+      <Modal show={showEndCallModal} onHide={() => setShowEndCallModal(false)} centered style={{
+        boxShadow: '0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1)',
+        borderRadius: '16px',
+        transition: 'transform 0.3s ease-in-out',
+      }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+        <Modal.Header closeButton>
+          <Modal.Title>Finalizar Llamada de Emergencia</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Precio ($)</Form.Label>
+              <Form.Control
+                type="number"
+                step="0.01"
+                value={endCallForm.precio}
+                onChange={(e) => setEndCallForm({ ...endCallForm, precio: e.target.value })}
+                placeholder="Ingrese el precio de la consulta"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Motivo</Form.Label>
+              <Form.Control
+                type="text"
+                value={endCallForm.motivo}
+                onChange={(e) => setEndCallForm({ ...endCallForm, motivo: e.target.value })}
+                placeholder="Motivo de la llamada"
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowEndCallModal(false)}>
+            Cancelar
+          </Button>
+          <Button variant="success" onClick={confirmarFinalizarLlamada}>
+            Confirmar
           </Button>
         </Modal.Footer>
       </Modal>
@@ -914,51 +955,34 @@ const RTC_CONFIG = {
               <FaPhoneSlash size={20} />
             </Button>
           </div>
-
-          {/* Modal para finalizar llamada con precio y motivo */}
-          <Modal show={showEndCallModal} onHide={() => setShowEndCallModal(false)} centered style={{
-            boxShadow: '0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1)',
-            borderRadius: '16px',
-            transition: 'transform 0.3s ease-in-out',
-          }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
-            <Modal.Header closeButton>
-              <Modal.Title>Finalizar Llamada de Emergencia</Modal.Title>
-            </Modal.Header>
-            <Modal.Body>
-              <Form>
-                <Form.Group className="mb-3">
-                  <Form.Label>Precio ($)</Form.Label>
-                  <Form.Control
-                    type="number"
-                    step="0.01"
-                    value={endCallForm.precio}
-                    onChange={(e) => setEndCallForm({ ...endCallForm, precio: e.target.value })}
-                    placeholder="Ingrese el precio de la consulta"
-                  />
-                </Form.Group>
-                <Form.Group className="mb-3">
-                  <Form.Label>Motivo</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={endCallForm.motivo}
-                    onChange={(e) => setEndCallForm({ ...endCallForm, motivo: e.target.value })}
-                    placeholder="Motivo de la llamada"
-                  />
-                </Form.Group>
-              </Form>
-            </Modal.Body>
-            <Modal.Footer>
-              <Button variant="secondary" onClick={() => setShowEndCallModal(false)}>
-                Cancelar
-              </Button>
-              <Button variant="success" onClick={confirmarFinalizarLlamada}>
-                Confirmar
-              </Button>
-            </Modal.Footer>
-          </Modal>
-
         </div>
       )}
+
+      {/* Modal para errores generales */}
+      <Modal
+        show={errorModalShow}
+        onHide={() => setErrorModalShow(false)}
+        centered
+        style={{
+          boxShadow: '0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1)',
+          borderRadius: '16px',
+          transition: 'transform 0.3s ease-in-out',
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Error</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Alert variant="danger">{errorMessage}</Alert>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setErrorModalShow(false)}>
+            Cerrar
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 }

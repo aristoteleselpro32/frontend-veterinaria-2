@@ -63,6 +63,7 @@ export default function ServiciosMascota({ setView }) {
       setAlertMsg({ type: "danger", text: "❌ Error al guardar el servicio: " + err.message });
     } finally {
       setLoading(false);
+      setModalCrear(false); // Cierra siempre al final
     }
   };
 
@@ -84,13 +85,13 @@ export default function ServiciosMascota({ setView }) {
       });
       if (!res.ok) throw new Error("Error al editar el servicio");
       await fetchData();
-      setModalEditar(false);
       setAlertMsg({ type: "success", text: "✅ Servicio actualizado correctamente." });
     } catch (err) {
       console.error("Error en handleEditar:", err);
       setAlertMsg({ type: "danger", text: "❌ Error al editar el servicio: " + err.message });
     } finally {
       setLoading(false);
+      setModalEditar(false); // Cierra siempre al final (movido de try a finally)
     }
   };
 
@@ -133,7 +134,7 @@ export default function ServiciosMascota({ setView }) {
 
       // ========== ENCABEZADO CON LOGO Y TÍTULO ==========
       try {
-        const logoUrl = "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=200&h=200&fit=crop";
+        const logoUrl = "https://i.postimg.cc/13XLcjyv/imagen-2025-09-30-163600354.png"; // Cambiado a la URL del header para consistencia (válida)
         const logoImg = await fetch(logoUrl)
           .then(res => res.blob())
           .then(blob => new Promise(resolve => {
@@ -142,7 +143,7 @@ export default function ServiciosMascota({ setView }) {
             reader.readAsDataURL(blob);
           }));
         
-        doc.addImage(logoImg, "JPEG", 15, 15, 25, 25);
+        doc.addImage(logoImg, "PNG", 15, 15, 25, 25); // Cambiado a PNG asumiendo formato
       } catch (error) {
         console.warn("No se pudo cargar el logo:", error);
       }
@@ -830,12 +831,11 @@ export default function ServiciosMascota({ setView }) {
           </Col>
         </Row>
 
-        <Modal show={modalCrear} onHide={() => setModalCrear(false)} size="xl" centered className="fade" style={{
+        <Modal show={modalCrear} onHide={() => setModalCrear(false)} size="xl" centered style={{
           borderRadius: "16px",
           boxShadow: "0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1)",
-          transition: "transform 0.3s ease-in-out",
           fontFamily: "Roboto, sans-serif",
-        }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.02)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>
+        }}>
           <Modal.Header closeButton className="bg-light text-dark border-secondary">
             <Modal.Title>
               <i className="bi bi-plus-circle-fill me-2"></i> Crear
@@ -846,12 +846,11 @@ export default function ServiciosMascota({ setView }) {
           </Modal.Body>
         </Modal>
 
-        <Modal show={modalEditar} onHide={() => setModalEditar(false)} size="xl" centered className="fade" style={{
+        <Modal show={modalEditar} onHide={() => setModalEditar(false)} size="xl" centered style={{
           borderRadius: "16px",
           boxShadow: "0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1)",
-          transition: "transform 0.3s ease-in-out",
           fontFamily: "Roboto, sans-serif",
-        }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.02)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>
+        }}>
           <Modal.Header closeButton className="bg-light text-dark border-secondary">
             <Modal.Title>
               <i className="bi bi-pencil-fill me-2"></i> Editar
