@@ -117,83 +117,258 @@ export default function ServiciosMascota({ setView }) {
     setOpenExamenFisico((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // 📄 FUNCIÓN PARA GENERAR PDF (como lista/report)
+  // 📄 FUNCIÓN MEJORADA PARA GENERAR PDF PROFESIONAL
   const handleImprimir = async (item) => {
     try {
       const doc = new jsPDF();
+      
+      // ========== COLORES PROFESIONALES ==========
+      const colorPrimario = [0, 128, 255];      // Azul corporativo
+      const colorSecundario = [16, 185, 129];   // Verde médico
+      const colorGrisOscuro = [51, 51, 51];     // Texto principal
+      const colorGrisClaro = [245, 245, 245];   // Fondos
+      const colorBlanco = [255, 255, 255];
+      
+      let yPos = 20;
 
-      // Cargar logo desde URL y convertir a base64
-      const logoUrl = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNBUhLy6fYf34vlOEpIaGj2h76BzQhhjg89w&s";
-      const logoImg = await fetch(logoUrl)
-        .then(res => res.blob())
-        .then(blob => new Promise(resolve => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.readAsDataURL(blob);
-        }));
-
-      doc.addImage(logoImg, "PNG", 10, 10, 20, 20); // logo pequeño esquina
-
-      // Encabezado
-      doc.setFontSize(16);
-      doc.text("VIDAPETS", 105, 20, { align: "center" });
-      doc.setFontSize(10);
-      doc.text("JJ3J+27 Chulchucani, Carrasco", 105, 26, { align: "center" });
-      doc.text("+59160371104 - lokiangelo21@gmail.com", 105, 31, { align: "center" });
-      doc.line(10, 40, 200, 40);
-
-      // Datos propietario
-      doc.setFontSize(12);
-      doc.text("Datos de Propietario", 10, 50);
-      doc.setFontSize(10);
-      doc.text(`Nombre: ${propietario.nombre || "N/D"}`, 10, 56);
-      doc.text(`Identificación: ${propietario.identificacion || "N/D"}`, 10, 61);
-      doc.text(`Teléfono: ${propietario.telefono || "N/D"}`, 10, 66);
-      doc.text(`Email: ${propietario.email || "N/D"}`, 10, 71);
-
-      // Datos mascota
-      doc.setFontSize(12);
-      doc.text("Datos de Mascota", 10, 82);
-      doc.setFontSize(10);
-      doc.text(`Nombre: ${mascota.nombre || "N/D"}`, 10, 88);
-      doc.text(`Especie: ${mascota.especie || "N/D"} | Raza: ${mascota.raza || "N/D"}`, 10, 93);
-      doc.text(`Género: ${mascota.genero || "N/D"} | Color: ${mascota.color || "N/D"}`, 10, 98);
-      doc.text(`Talla: ${mascota.talla || "N/D"} | Estado Reproductivo: ${mascota.estado_reproductivo || "N/D"}`, 10, 103);
-      doc.text(`Edad: ${mascota.edad || "N/D"}`, 10, 108);
-
-      // Servicio como reporte (lista key-value)
-      doc.setFontSize(12);
-      doc.text(`Reporte de Servicio: ${servicioSeleccionado}`, 10, 120);
-      doc.setFontSize(10);
-      let yPos = 126;
-      for (const [key, value] of Object.entries(item)) {
-        if (key === "_id" || key === "createdAt" || key === "updatedAt" || key === "mascota_id") continue; // Ignorar campos internos
-
-        let displayValue = value;
-        if (typeof value === "object" && value !== null) {
-          // Manejar objetos como examen_fisico
-          doc.text(`${key.charAt(0).toUpperCase() + key.slice(1)}:`, 10, yPos);
-          yPos += 5;
-          for (const [subKey, subValue] of Object.entries(value)) {
-            doc.text(`  - ${subKey.charAt(0).toUpperCase() + subKey.slice(1)}: ${subValue || "N/D"}`, 10, yPos);
-            yPos += 5;
-          }
-        } else {
-          if (key.includes("fecha")) {
-            displayValue = format(new Date(value || new Date()), "dd/MM/yyyy", { locale: es });
-          } else if (Array.isArray(value) && key === "medicamentos") {
-            displayValue = value.map(m => m.nombre).join(", ") || "N/D";
-          }
-          doc.text(`${key.charAt(0).toUpperCase() + key.slice(1)}: ${displayValue || "N/D"}`, 10, yPos);
-          yPos += 5;
-        }
+      // ========== ENCABEZADO CON LOGO Y TÍTULO ==========
+      try {
+        const logoUrl = "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=200&h=200&fit=crop";
+        const logoImg = await fetch(logoUrl)
+          .then(res => res.blob())
+          .then(blob => new Promise(resolve => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          }));
+        
+        doc.addImage(logoImg, "JPEG", 15, 15, 25, 25);
+      } catch (error) {
+        console.warn("No se pudo cargar el logo:", error);
       }
 
-      // Footer
-      doc.setFontSize(8);
-      doc.text("vidapets", 105, 290, { align: "center" });
+      // Título principal con color corporativo
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(24);
+      doc.setTextColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
+      doc.text("VIDAPETS", 105, 25, { align: "center" });
+      
+      // Subtítulo
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(colorGrisOscuro[0], colorGrisOscuro[1], colorGrisOscuro[2]);
+      doc.text("Clínica Veterinaria Profesional", 105, 32, { align: "center" });
+      doc.text("JJ3J+27 Chulchucani, Carrasco", 105, 37, { align: "center" });
+      doc.text("Tel: +591 60371104 | Email: lokiangelo21@gmail.com", 105, 42, { align: "center" });
+      
+      // Línea decorativa con color primario
+      doc.setDrawColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
+      doc.setLineWidth(0.8);
+      doc.line(15, 48, 195, 48);
+      
+      yPos = 58;
 
-      doc.save(`${servicioSeleccionado}_${mascota.nombre}.pdf`);
+      // ========== SECCIÓN DE INFORMACIÓN CON CAJAS DE COLOR ==========
+      // Caja de fondo gris claro
+      doc.setFillColor(colorGrisClaro[0], colorGrisClaro[1], colorGrisClaro[2]);
+      doc.roundedRect(15, yPos, 85, 35, 3, 3, "F");
+      doc.roundedRect(105, yPos, 85, 35, 3, 3, "F");
+      
+      // Borde azul para propietario
+      doc.setDrawColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(15, yPos, 85, 35, 3, 3, "S");
+      
+      // Borde verde para mascota
+      doc.setDrawColor(colorSecundario[0], colorSecundario[1], colorSecundario[2]);
+      doc.roundedRect(105, yPos, 85, 35, 3, 3, "S");
+      
+      // PROPIETARIO (Columna izquierda)
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
+      doc.text("DATOS DEL PROPIETARIO", 20, yPos + 7);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(colorGrisOscuro[0], colorGrisOscuro[1], colorGrisOscuro[2]);
+      doc.text(`Nombre: ${propietario.nombre || "N/D"}`, 20, yPos + 14);
+      doc.text(`ID: ${propietario.identificacion || "N/D"}`, 20, yPos + 19);
+      doc.text(`Teléfono: ${propietario.telefono || "N/D"}`, 20, yPos + 24);
+      doc.text(`Email: ${propietario.email || "N/D"}`, 20, yPos + 29);
+
+      // MASCOTA (Columna derecha)
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(colorSecundario[0], colorSecundario[1], colorSecundario[2]);
+      doc.text("DATOS DE LA MASCOTA", 110, yPos + 7);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(colorGrisOscuro[0], colorGrisOscuro[1], colorGrisOscuro[2]);
+      doc.text(`Nombre: ${mascota.nombre || "N/D"}`, 110, yPos + 14);
+      doc.text(`Especie: ${mascota.especie || "N/D"} | Raza: ${mascota.raza || "N/D"}`, 110, yPos + 19);
+      doc.text(`Género: ${mascota.genero || "N/D"} | Edad: ${mascota.edad || "N/D"}`, 110, yPos + 24);
+      doc.text(`Color: ${mascota.color || "N/D"} | Talla: ${mascota.talla || "N/D"}`, 110, yPos + 29);
+
+      yPos += 43;
+
+      // ========== TÍTULO DEL REPORTE ==========
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.setTextColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
+      doc.text(`REPORTE DE ${servicioSeleccionado.toUpperCase()}`, 105, yPos, { align: "center" });
+      
+      // Fecha de emisión
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(9);
+      doc.setTextColor(colorGrisOscuro[0], colorGrisOscuro[1], colorGrisOscuro[2]);
+      doc.text(`Fecha de emisión: ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: es })}`, 195, yPos, { align: "right" });
+      
+      yPos += 12;
+
+      // ========== TABLA DE DATOS DEL SERVICIO ==========
+      // Encabezado de tabla
+      doc.setFillColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
+      doc.rect(15, yPos, 180, 8, "F");
+      
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(colorBlanco[0], colorBlanco[1], colorBlanco[2]);
+      doc.text("Campo", 20, yPos + 5.5);
+      doc.text("Información", 90, yPos + 5.5);
+      
+      yPos += 8;
+      
+      // Datos en formato tabla
+      let esFilaPar = true;
+      const alturaFila = 7;
+      
+      for (const [key, value] of Object.entries(item)) {
+        // Saltar campos internos
+        if (key === "_id" || key === "createdAt" || key === "updatedAt" || key === "mascota_id" || key === "__v") continue;
+        
+        // Verificar si necesitamos nueva página
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+          esFilaPar = true;
+        }
+        
+        // Color de fondo alternado
+        if (esFilaPar) {
+          doc.setFillColor(colorGrisClaro[0], colorGrisClaro[1], colorGrisClaro[2]);
+          doc.rect(15, yPos, 180, alturaFila, "F");
+        }
+        
+        // Procesar objetos anidados (como examen_fisico)
+        if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+          // Título de la sección (ej: "Examen Fisico")
+          doc.setFillColor(colorSecundario[0], colorSecundario[1], colorSecundario[2]);
+          doc.rect(15, yPos, 180, alturaFila, "F");
+          
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.setTextColor(colorBlanco[0], colorBlanco[1], colorBlanco[2]);
+          doc.text(key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " "), 20, yPos + 5);
+          
+          yPos += alturaFila;
+          esFilaPar = true;
+          
+          // Sub-items del objeto
+          for (const [subKey, subValue] of Object.entries(value)) {
+            if (yPos > 250) {
+              doc.addPage();
+              yPos = 20;
+              esFilaPar = true;
+            }
+            
+            if (esFilaPar) {
+              doc.setFillColor(colorGrisClaro[0], colorGrisClaro[1], colorGrisClaro[2]);
+              doc.rect(15, yPos, 180, alturaFila, "F");
+            }
+            
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(9);
+            doc.setTextColor(colorGrisOscuro[0], colorGrisOscuro[1], colorGrisOscuro[2]);
+            doc.text(`  ${subKey.charAt(0).toUpperCase() + subKey.slice(1).replace(/_/g, " ")}`, 20, yPos + 5);
+            doc.text(String(subValue || "N/D"), 90, yPos + 5);
+            
+            yPos += alturaFila;
+            esFilaPar = !esFilaPar;
+          }
+        } else {
+          // Procesar valores simples
+          let displayValue = value;
+          
+          if (key.includes("fecha") && value) {
+            try {
+              displayValue = format(new Date(value), "dd/MM/yyyy", { locale: es });
+            } catch (e) {
+              displayValue = String(value);
+            }
+          } else if (Array.isArray(value)) {
+            if (key === "medicamentos" && value.length > 0) {
+              displayValue = value.map(m => m.nombre || m).join(", ");
+            } else {
+              displayValue = value.join(", ") || "N/D";
+            }
+          }
+          
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(9);
+          doc.setTextColor(colorGrisOscuro[0], colorGrisOscuro[1], colorGrisOscuro[2]);
+          doc.text(key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " "), 20, yPos + 5);
+          
+          doc.setFont("helvetica", "normal");
+          // Dividir texto largo en múltiples líneas
+          const textoLargo = String(displayValue || "N/D");
+          const lineasTexto = doc.splitTextToSize(textoLargo, 100);
+          doc.text(lineasTexto, 90, yPos + 5);
+          
+          // Ajustar altura si hay múltiples líneas
+          if (lineasTexto.length > 1) {
+            yPos += (lineasTexto.length - 1) * 5;
+          }
+          
+          yPos += alturaFila;
+          esFilaPar = !esFilaPar;
+        }
+      }
+      
+      // Borde de la tabla
+      doc.setDrawColor(colorGrisOscuro[0], colorGrisOscuro[1], colorGrisOscuro[2]);
+      doc.setLineWidth(0.3);
+      doc.rect(15, 78, 180, yPos - 78);
+
+      // ========== PIE DE PÁGINA PROFESIONAL ==========
+      const totalPaginas = doc.internal.getNumberOfPages();
+      
+      for (let i = 1; i <= totalPaginas; i++) {
+        doc.setPage(i);
+        
+        // Línea decorativa superior
+        doc.setDrawColor(colorSecundario[0], colorSecundario[1], colorSecundario[2]);
+        doc.setLineWidth(0.5);
+        doc.line(15, 280, 195, 280);
+        
+        // Texto del footer
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(8);
+        doc.setTextColor(128, 128, 128);
+        doc.text("VIDAPETS - Cuidando la salud de tu mascota con profesionalismo", 105, 287, { align: "center" });
+        doc.text(`Página ${i} de ${totalPaginas}`, 195, 287, { align: "right" });
+        
+        // Icono decorativo
+        doc.setFontSize(10);
+        doc.text("🐾", 15, 287);
+      }
+
+      // Guardar PDF
+      const nombreArchivo = `${servicioSeleccionado}_${mascota.nombre}_${format(new Date(), "yyyyMMdd_HHmm")}.pdf`;
+      doc.save(nombreArchivo);
+      
+      setAlertMsg({ type: "success", text: "✅ PDF generado exitosamente." });
     } catch (err) {
       console.error("Error generando PDF:", err);
       setAlertMsg({ type: "danger", text: "❌ Error al generar PDF: " + (err.message || err) });
