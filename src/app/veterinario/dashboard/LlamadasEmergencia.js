@@ -63,7 +63,7 @@ export default function LlamadasEmergencia({ veterinarioId }) {
   }, [filtroCliente, filtroMotivo, filtroEstado, filtroDesde, filtroHasta, llamadas]);
 
   const handlePagar = async () => {
-    if (!llamadaSeleccionada) return;
+    if (!llamadaSeleccionada || llamadaSeleccionada.estado !== "ended") return;
     setPagoLoading(true);
     try {
       const response = await fetch(`https://servicios-veterinarios.onrender.com/api/servicios-veterinarios/llamadas/${llamadaSeleccionada.id}/pagar`, {
@@ -182,9 +182,10 @@ export default function LlamadasEmergencia({ veterinarioId }) {
               onChange={(e) => setFiltroEstado(e.target.value)}
             >
               <option value="">Todos</option>
-              <option value="pendiente">Pendiente</option>
-              <option value="aceptada">Aceptada</option>
-              <option value="finalizada">Finalizada</option>
+              <option value="ringing">Pendiente</option>
+              <option value="accepted">Aceptada</option>
+              <option value="ended">Finalizada</option>
+              <option value="rejected">Rechazada</option>
             </Form.Select>
           </Form.Group>
         </Col>
@@ -340,6 +341,7 @@ export default function LlamadasEmergencia({ veterinarioId }) {
                           setLlamadaSeleccionada(llamada);
                           setShowPagoModal(true);
                         }}
+                        disabled={llamada.estado !== "ended"}
                         style={{
                           transition: "box-shadow 0.2s, transform 0.2s",
                         }}

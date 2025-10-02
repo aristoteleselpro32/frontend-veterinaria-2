@@ -775,48 +775,6 @@ const RTC_CONFIG = {
         </Modal.Footer>
       </Modal>
 
-      {/* Modal para finalizar llamada con precio y motivo */}
-      <Modal show={showEndCallModal} onHide={() => setShowEndCallModal(false)} centered style={{
-        boxShadow: '0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1)',
-        borderRadius: '16px',
-        transition: 'transform 0.3s ease-in-out',
-      }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
-        <Modal.Header closeButton>
-          <Modal.Title>Finalizar Llamada de Emergencia</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Precio ($)</Form.Label>
-              <Form.Control
-                type="number"
-                step="0.01"
-                value={endCallForm.precio}
-                onChange={(e) => setEndCallForm({ ...endCallForm, precio: e.target.value })}
-                placeholder="Ingrese el precio de la consulta"
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Motivo</Form.Label>
-              <Form.Control
-                type="text"
-                value={endCallForm.motivo}
-                onChange={(e) => setEndCallForm({ ...endCallForm, motivo: e.target.value })}
-                placeholder="Motivo de la llamada"
-              />
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowEndCallModal(false)}>
-            Cancelar
-          </Button>
-          <Button variant="success" onClick={confirmarFinalizarLlamada}>
-            Confirmar
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
       {/* Vista durante la llamada */}
       {callAccepted && (
         <div
@@ -956,6 +914,49 @@ const RTC_CONFIG = {
               <FaPhoneSlash size={20} />
             </Button>
           </div>
+
+          {/* Modal para finalizar llamada con precio y motivo */}
+          <Modal show={showEndCallModal} onHide={() => setShowEndCallModal(false)} centered style={{
+            boxShadow: '0 16px 32px rgba(0, 0, 0, 0.15), 0 0 48px rgba(0, 128, 255, 0.1)',
+            borderRadius: '16px',
+            transition: 'transform 0.3s ease-in-out',
+          }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+            <Modal.Header closeButton>
+              <Modal.Title>Finalizar Llamada de Emergencia</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+              <Form>
+                <Form.Group className="mb-3">
+                  <Form.Label>Precio ($)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    step="0.01"
+                    value={endCallForm.precio}
+                    onChange={(e) => setEndCallForm({ ...endCallForm, precio: e.target.value })}
+                    placeholder="Ingrese el precio de la consulta"
+                  />
+                </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label>Motivo</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={endCallForm.motivo}
+                    onChange={(e) => setEndCallForm({ ...endCallForm, motivo: e.target.value })}
+                    placeholder="Motivo de la llamada"
+                  />
+                </Form.Group>
+              </Form>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="secondary" onClick={() => setShowEndCallModal(false)}>
+                Cancelar
+              </Button>
+              <Button variant="success" onClick={confirmarFinalizarLlamada}>
+                Confirmar
+              </Button>
+            </Modal.Footer>
+          </Modal>
+
         </div>
       )}
     </Container>
