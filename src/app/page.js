@@ -29,7 +29,7 @@ const EMERGENCY_USER_ID = "750b4f1d-3912-4802-8df2-e6544ba860fd";
 // Configuración ICE mejorada
 const RTC_CONFIG = {
   iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
+    
     {
       urls: [
         "turn:50.17.103.219:3478",  // Nueva IP

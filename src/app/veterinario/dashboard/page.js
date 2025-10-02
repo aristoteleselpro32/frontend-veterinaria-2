@@ -58,7 +58,7 @@ export default function VeterinarioDashboard() {
   // Configuración ICE mejorada
 const RTC_CONFIG = {
   iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
+    
     {
       urls: [
         "turn:50.17.103.219:3478",  // Nueva IP
