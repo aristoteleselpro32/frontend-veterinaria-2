@@ -746,8 +746,8 @@ export default function Home() {
 
       const constraints = {
         video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: 640 },
+          height: { ideal: 480 },
           ...(selectedCameraId ? { deviceId: { exact: selectedCameraId } } : { facingMode: "user" }),
         },
         audio: true,

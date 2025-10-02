@@ -56,16 +56,16 @@ export default function VeterinarioDashboard() {
   const ringtoneRef = useRef(null);
 
   // Configuración ICE mejorada
-iceServers: [
+const RTC_CONFIG = {
+  iceServers: [
   { urls: "stun:stun.l.google.com:19302" },
   {
     urls: ["turn:openrelay.metered.ca:80", "turn:openrelay.metered.ca:443?transport=tcp"],
     username: "openrelayproject",
     credential: "openrelayproject"
   }
-],
+]
 };
-
   
   // Cargar usuario al montar
   useEffect(() => {
@@ -264,8 +264,8 @@ iceServers: [
       const constraints = {
         audio: true,
         video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: 640},
+          height: { ideal: 480 },
           ...(selectedCameraId ? { deviceId: { exact: selectedCameraId } } : { facingMode: "user" }),
         },
       };
